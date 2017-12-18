@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "C:\software\rl\ABC\Agent.py", line 89, in <module>
+    Main()
+  File "C:\software\rl\ABC\Agent.py", line 84, in Main
+    agent=Agent(config)
+  File "C:\software\rl\ABC\Agent.py", line 36, in __init__
+    self.img=self.generate_background()
+  File "C:\software\rl\ABC\Agent.py", line 54, in generate_background
+    cv2.line(self.img,(a,0),(a,self.img.shape[0]),[255,255,255],2)
+TypeError: integer argument expected, got float

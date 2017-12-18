@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/storage/emulated/0/qpython/scripts/IRC/main.py", line 60, in <module>
+    Main()
+  File "/storage/emulated/0/qpython/scripts/IRC/main.py", line 37, in Main
+    print(script)
+UnboundLocalError: local variable 'script' referenced before assignment
