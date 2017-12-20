@@ -11,11 +11,11 @@
 #define kdsf 7
 #define kds2 15
 #define r1 4//D4
-#define r2 5//D5
+#define r2 7//D5
 #define sr 6//D6
-#define l1 12//B0
-#define l2 13//D7
-#define sl 11//B1
+#define l1 13//B0
+#define l2 12//D7
+#define sl 5//B1
 #define consKpt 1.38
 #define consKit 0.0005
 #define consKdt 0.0017
@@ -43,7 +43,7 @@ char c;
 boolean flag = false, sendflag = true;
 int camposition[3] = {0, 90, 180};
 int T, G = 0;
-int gservozero1 = 90, gservozero2 = 90, armservozero = 90;
+int gservozero1 = 105, gservozero2 = 85, armservozero = 50, camservozero = 90;
 Servo cam_servo, gripper_servo1, gripper_servo2, arm_servo;
 
 int pr[2], negh[8][2] = {{ -1, 0}, { -1, 1}, {0, 1}, {1, 1}, {1, 0}, { 1, -1} , {0, -1}, { -1, -1}};
@@ -68,20 +68,20 @@ void motor(int left, int right) //drive motor//
 void lm(int lsp)//
 {
   if (lsp >= 0) {
-    /*
-      digitalWrite(l1, 1);
-      digitalWrite(l2, 0);*/
 
-    PORTB |= 0b00000001;
-    PORTD &= 0b01111111;
+    digitalWrite(l1, 1);
+    digitalWrite(l2, 0);
+
+    //PORTB |= 0b00000001;
+    //PORTD &= 0b01111111;
     analogWrite(sl, lsp);
   }
   else {
-    /*
-      digitalWrite(l1, 0);
-      digitalWrite(l2, 1);*/
-    PORTD |= 0b10000000;
-    PORTB &= 0b11111110;
+
+    digitalWrite(l1, 0);
+    digitalWrite(l2, 1);
+    //PORTD |= 0b10000000;
+    //PORTB &= 0b11111110;
     analogWrite(sl, -lsp);
   }
 }
@@ -302,10 +302,10 @@ void setup()
   Serial.begin(115200);
 
   //######################## servopins ############################
-  cam_servo.attach(9);
-  gripper_servo1.attach(6);
-  gripper_servo2.attach(3);
-  arm_servo.attach(12);
+  cam_servo.attach(8);
+  gripper_servo1.attach(11);
+  gripper_servo2.attach(10);
+  arm_servo.attach(9);
   //####################################################
   //pidcheck();
   //generate();
@@ -340,30 +340,16 @@ void setup()
     //delay(2000);
     //pidcheck();
   */
+  cam_servo.write(camservozero);
+  gripper_servo1.write(gservozero1);
+  gripper_servo2.write(gservozero2);
+  arm_servo.write(armservozero);
 }
 void loop()
 {
-  //##########################################
-  if (Serial.available())
-  {
-    sendflag = false;
-    c = Serial.read();
+  motor(125, 125);
+  delay(2000);
 
-    if (c == '|') {
-      line = data;
-      data = "";
-      flag = true;
-      line += " ";
-    }
-    else {
-      data += c;
-    }
-  }
-  //##########################################
-  if (flag)
-  {
-    process_string(line);
-    flag = false;
-    do_action();
-  }
+  motor(-125, -125);
+  delay(1000);
 }
