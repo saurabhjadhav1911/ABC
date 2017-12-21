@@ -15,14 +15,16 @@ class Cam():
         self.minRadius=50
         self.maxRadius=200
         self.threshold = 0.8
+        self.arr_thres=0.75
         self.logo=cv2.imread('tflogo.png',cv2.IMREAD_GRAYSCALE)
-        self.v=cv2.VideoCapture(0)
+        self.left=cv2.imread('left_arrow.jpg',cv2.IMREAD_GRAYSCALE)
+        self.right=cv2.imread('right_arrow.jpg',cv2.IMREAD_GRAYSCALE)
+
+        self.v=cv2.VideoCapture(1)
         self.ret,self.frame=self.v.read()
         self.cimg=self.frame.copy()
         self.render=True
         self.dict={}
-
-    
 
     def logo_detect(self):
         logo_flag=False
@@ -47,40 +49,85 @@ class Cam():
         return logo_flag
 
 
+    def cnt(self,im):
+        imgray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        ret, thresh = cv2.threshold(imgray, 127, 255, 0)
+        im2, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        mxl=0
+        mxr=0
+        arrow="NotFound"
+        for cnt in contours:
+            e=0.05*cv2.arcLength(cnt, True)
+            approx = cv2.approxPolyDP(cnt,e,True)
+            ln=len(approx)
+            if ln>3 and ln<8:
+                #cv2.drawContours(im, [approx], -1, (0,255,0), 3)
+                x,y,w,h = cv2.boundingRect(cnt)
+                
+                mat=imgray[y:y+h,x:x+w]
+                if ln==5 and mat.shape[0]>20 and mat.shape[1]>20:
+                    cv2.rectangle(im,(x,y),(x+w,y+h),(0,0,255),2)
+                    res_left,res_right=self.match_arrow(mat)
+                    #print(res_left,res_right)
+                    if res_left>mxl:
+                        mxl=res_left
+                    if res_right>mxr:
+                        mxr=res_right
+                #print(mx)   
+                    
+            #print(e)
+        if max(mxl,mxr)>self.arr_thres:
+            if mxl>mxr:
+                arrow="Left"
+            else:
+                arrow="Right"
+        return im,arrow
+
+    def match_arrow(self,mat):
+        res_left,res_right=0,0
+        try:
+            r=mat.shape[1]
+            c=mat.shape[0]
+            left_arr = cv2.resize(self.left,(r,c))
+            right_arr = cv2.resize(self.right,(r,c))
+            #print(left_arr.shape,right_arr.shape,mat.shape)
+            res_left = cv2.matchTemplate(mat,left_arr,cv2.TM_CCOEFF_NORMED)
+            res_right = cv2.matchTemplate(mat,right_arr,cv2.TM_CCOEFF_NORMED)
+             
+        except Exception as e:
+            print(e)
+        return res_left,res_right
+        
+
     def arrow_detect(self):
-        arr_flag=False
-        arr_frames=0
+        left_frames=0
+        right_frames=0
+        arrow="NotFound"
         for i in range(20):
             self.ret,self.frame=self.v.read()
             #img=pattern_rec(frame)
             #print(ret)
-            self.img,self.val=self.logo_rec()
-            if self.val>self.threshold:
-                arr_frames+=1
-            if (cv2.waitKey(10)==ord('q')):
-                break
-            if arr_frames>2:
-                arr_flag=True
+            self.img,self.arrow=self.cnt(self.frame)
+            if self.arrow=="Left":
+                left_frames+=1
+            if self.arrow=="Right":
+                right_frames+=1
+            if max(left_frames,right_frames)>2:
+                if left_frames>right_frames:
+                    arrow="Left"
+                else:
+                    arrow="Right"
                 break
         self.v.release()
-        if self.render and arr_flag:
-            self.cimg=self.frame.copy()
-            cv2.circle(self.cimg, (self.dict['center_x'], self.dict['center_y']), self.dict['radius'], (0, 0, 255), 3, cv2.LINE_AA)
-        
-        return arr_flag
+        if self.render and arrow!="NotFound":
+            self.cimg=self.img
+        return arrow
 
-    def pattern_rec(self,img):
-        gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-        ret,thresh = cv2.threshold(gray,100,255,0)
-        
-        im2,contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(img,contours,-1,(0,255,0),3)
-        return img
 
     def logo_rec(self):
         #print(type(self.frame))
         gray_img = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-        img`=cv2.GaussianBlur(gray_img,(3,3),0)
+        img=cv2.GaussianBlur(gray_img,(3,3),0)
          # numpy function
 
         circles = cv2.HoughCircles(img, cv2.HOUGH_GRADIENT, 1, 10, np.array([]), 100, 30, minRadius, maxRadius)
@@ -122,48 +169,15 @@ def find_logo():
 
 def find_arrow():
     cam=Cam()
-    direction,flag=cam.arrow_detect()
-    if flag:
-        print('arrow {}'.format())
-        cv2.imshow('window',cam.cimg)
-    else:
-        print('tflogo not found')
+    arrow=cam.arrow_detect()
+    print('arrow {}'.format(arrow))
+    cv2.imshow('window',cam.cimg)
 
 #cv2.imshow('Original',frame)
 
 
 #########################################################################################################
-def detect(frame):
-    blur=cv2.GaussianBlur(frame,(3,3),0)
-    edges = cv2.Canny(blur,100,200,apertureSize = 3)
-    #cv2.imshow('edges',edges)
-    #cv2.waitKey(0)
-    minLineLength = 50
-    maxLineGap = 10
-    try:
-        lines = cv2.HoughLinesP(edges,1,np.pi/180,minLineLength,minLineLength,maxLineGap)
 
-        for line in lines:
-            #print(line)
-            x1,y1,x2,y2=line[0]
-            cv2.line(edges,(x1,y1),(x2,y2),(255,255,255),3)
-    except Exception as e:
-        print(e)
-        
-    return edges
- 
-def arrow_test():
-    last_time = time.time()
-    v=cv2.VideoCapture(1)
-    while(True):
-        ret,frame=v.read()
-        new_screen = detect(frame)
-        print('Loop took {} seconds'.format(time.time()-last_time))
-        last_time = time.time()
-        cv2.imshow('window', new_screen)
-        #cv2.imshow('window2', cv2.cvtColor(screen, cv2.COLOR_BGR2RGB))
-        if cv2.waitKey(25) & 0xFF == ord('q'):
-            cv2.destroyAllWindows()
-            break
+
 if __name__=='__main__':
-    arrow_test()
+    find_arrow()
