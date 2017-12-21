@@ -14,7 +14,6 @@ class Env():
         print('Env created')
         self.config=config
         self.ser=self.get_Serial()
-        self.default_action=config['Env_config']['default_action']
         self.data=""
 
     def get_Serial(self):
@@ -34,7 +33,7 @@ class Env():
         flag=False
         while r.empty() is False:
             flag=True
-            arr="".join([str(i)+" " for i in r.get])
+            arr=r.get()
             arr+="|"
             #unicode(s, "utf-8")
             #print(arr)

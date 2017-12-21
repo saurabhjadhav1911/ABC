@@ -12,6 +12,7 @@ import cv2
 from collections import deque
 import Env
 import Cam
+import Agent
 import sys
 import os
 import traceback
@@ -19,8 +20,7 @@ import traceback
 
 def Cam_process_target(recieve_que,send_que,config):
     cam=Cam.Cam(config)
-    #sim.run(recieve_que,send_que)
-    cam.generate_step(recieve_que,send_que)
+    cam.run(recieve_que,send_que)
 
 def Env_process_target(recieve_que,send_que,config):
     print('Env process start')
@@ -43,13 +43,16 @@ def Main():
 
     #process initialisation
     env_process=multiprocessing.Process(target=Env_process_target,args=(recieve_que,send_que,config))
-    cam_process=multiprocessing.Process(target=Cam_process_target,args=(recieve_que,send_que,config))
+    agent_process=multiprocessing.Process(target=Agent_process_target,args=(recieve_que,send_que,config))
+    #cam_process=multiprocessing.Process(target=Cam_process_target,args=(recieve_que,send_que,config))
 
     env_process.start()
-    cam_process.start()
+    agent_process.start()
+    #cam_process.start()
     
-    cam_process.join()
+    agent_process.join()
     env_process.join()
+    #cam_process.start()
     
 
 

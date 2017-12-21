@@ -1,4 +1,5 @@
 import multiprocessing
+
 import numpy as np
 from misc import *
 import serial
@@ -25,7 +26,7 @@ class Agent():
 
         self.dir={'N':0,'E':1,'S':2,'W':3}
         self.start=[5,0]
-        self.start_orientation=0
+        self.start_orientation=1
         self.pos=self.start
         self.current_target=None
         self.prev_pos=self.start
@@ -70,6 +71,27 @@ class Agent():
 
     def load_background(self):
         return cv2.imread('back.jpg')
+
+    def trial_run(self):
+        pass#while()
+    def final_run(self):
+        pass
+
+    def action(self,act):
+        self.send_que.put(act)
+
+    def responce(self):
+        if(self.reciev_que.empty()):
+            while self.reciev_que.empty():
+                pass
+            data=reciev_que.get()
+        return data
+
+    def run(self,reciev_que,send_que):
+        self.send_que=send_que
+        self.reciev_que=reciev_que
+        self.action("G01 L45 R89 C90|")
+        print(self.responce())
 
     def flodfill(self,target):
         self.maze[target[0],target[1]]=0
@@ -184,7 +206,7 @@ class Agent():
 
         cv2.imshow('Environment',self.img)
         cv2.waitKey(0)
-        
+
     def draw_block(self):
         for i in range(self.maze.shape[0]):
             for j in range(self.maze.shape[1]):

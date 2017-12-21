@@ -11,7 +11,7 @@ threshold = 0.8
 
 class Cam():
     
-    def __init__(self):
+    def __init__(self,config):
         self.minRadius=50
         self.maxRadius=200
         self.threshold = 0.8
