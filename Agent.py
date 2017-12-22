@@ -15,15 +15,16 @@ import traceback
 
 class Agent():
     """docstring for Env"""
-    def __init__(self,config):
+    def __init__(self,config,mode):
         self.config=config
+        self.mode=mode # "trial"
         print('Agent created')
         self.maze_size=config['Env_config']['maze_size']
         self.maze=100*np.ones((self.maze_size[0],self.maze_size[1]))
         self.verlines=np.ones((self.maze_size[0],self.maze_size[1]-2))
         self.horlines=np.ones((self.maze_size[0]-2,self.maze_size[1]-1))
         self.que=deque(maxlen=100)
-
+        self.parameters=config['parameters']
         self.dir={'N':0,'E':1,'S':2,'W':3}
         self.start=[5,0]
         self.start_orientation=1
@@ -69,12 +70,115 @@ class Agent():
     def remove_lines(self):
         pass
 
+    def global_orientation(self,self_ori,ori):
+        return (self_ori+ori+4)%4
+
+    def setLines(self,pos,oris):
+        for ori in oris:
+            setLine(pos,ori)
+
+    def setLine(self,pos,ori,v):
+        if ori%2==0:
+            self.verlines[pos[0]+self.dir_lines[ori][0],pos[1]+self.dir_lines[ori][1]]=v
+        else:
+            self.horrlines[pos[0]+self.dir_lines[ori][0],pos[1]+self.dir_lines[ori][1]]=v
+
     def load_background(self):
         return cv2.imread('back.jpg')
 
+    def save_config(self,config):
+        pass
+
+    """
+
+    ################## G commands ##################
+
+    from master to robot 
+
+    0 - start
+    1 - stop
+
+    20 - line follower testing mode
+    
+    40 - test drive motors forward with max speed
+
+    70 - set speeds
+
+    80 - set P
+    81 - set I
+    82 - set D
+
+    from robot to master
+
+    120 - lines present L F R N
+
+    ################################################
+    """
+    def decode_responce(self,data):
+        params={}
+        try:
+            values=data.split()
+        except:
+            values=[data]
+        for term in values:
+            params[term[0]]=float(term[1:]) if len(term)>1 else 1
+        return params['G'],params
+
+    def do_action(self,G,values):
+        if G==120:
+            if 'N' in values:
+                self.setLine(self.pos,self.global_orientation(self.ori,-1,-1))
+                self.setLine(self.pos,self.global_orientation(self.ori,0,-1))
+                self.setLine(self.pos,self.global_orientation(self.ori,1,-1))
+                self.setLine(self.pos,self.global_orientation(self.ori,2,-1))
+            else:
+                if 'L' in values:
+                    self.setLine(self.pos,self.global_orientation(self.ori,-1,-1))
+                if 'F' in values:
+                    self.setLine(self.pos,self.global_orientation(self.ori,0,-1))
+                if 'R' in values:
+                    self.setLine(self.pos,self.global_orientation(self.ori,1,-1))
+
+        elif G==1
+
+
     def trial_run(self):
-        pass#while()
+        #start
+        self.action("G00")
+        self.pos[0],self.pos[1]=self.pos[0]+self.neighbours[self.ori][0],self.pos[1]+self.neighbours[self.ori][1]
+
+        while True:
+            data=self.responce()
+            break_flag=self.do_action(self.decode_responce(data))
+            if break_flag:
+                break
+            
+
+    def setPID(self,P,I,D):
+        self.action("G80 V{}".format(P))
+        self.action("G81 V{}".format(I))
+        self.action("G82 V{}".format(D))
+
+    def setSpeeds(self,L,R):
+        self.action("G70 L{} R{} ".format(L,R))
+
+    def decode_bytes(self,value):
+        pass
+
+    def set_default_parameters():
+        ########################### default parameters ###########################
+        self.setSpeeds(self.parameters[self.mode]["max_speed_L"],self.parameters[self.mode]["max_speed_R"]) ## max sppeds of motors
+        self.setPID(self.parameters[self.mode]["P"],self.parameters[self.mode]["I"],self.parameters[self.mode]["D"]) # set default PID
+        self.setLine(self.pos,self.ori,10)
+        ##########################################################################
+
+    def tunePID(self):
+        pass
+
     def final_run(self):
+        pass
+
+    def test_run(self):
         pass
 
     def action(self,act):
@@ -84,46 +188,51 @@ class Agent():
         if(self.reciev_que.empty()):
             while self.reciev_que.empty():
                 pass
-            data=reciev_que.get()
+            data=self.reciev_que.get()
         return data
 
     def run(self,reciev_que,send_que):
         self.send_que=send_que
         self.reciev_que=reciev_que
-        self.action("G01 L45 R89 C90|")
-        print(self.responce())
+
+        if self.mode == "final":
+            self.final_run()
+        elif self.mode=="trial":
+            self.trial_run()
+        elif self.mode=="test":
+            self.test_run()
 
     def flodfill(self,target):
         self.maze[target[0],target[1]]=0
         self.que.append(target)
         while self.que:
             point=self.que.popleft()
-            print("point {} popped".format(point))
+            #print("point {} popped".format(point))
             value=self.maze[point[0],point[1]]
             for i in range(4):
                 if i%2==0:
                     
                     negh=[point[0]+self.dir_lines[i][0],point[1]+self.dir_lines[i][1]]
                     if (negh[0]>-1) and (negh[1]>-1) and (negh[0]<self.ver_size[0]) and (negh[1]<self.ver_size[1]):
-                        print("verlines cordinates{}".format(negh))
+                        #print("verlines cordinates{}".format(negh))
                         if(self.verlines[negh[0],negh[1]]==1):
                             negh_point=[point[0]+self.neighbours[i][0],point[1]+self.neighbours[i][1]]
-                            print("verline {} is present".format(negh))
+                            #print("verline {} is present".format(negh))
                             if self.maze[negh_point[0],negh_point[1]]>(value+1):
                                 self.maze[negh_point[0],negh_point[1]]=(value+1)
-                                print("point {} given value {}".format(negh_point,value+1))
+                                #print("point {} given value {}".format(negh_point,value+1))
                                 self.que.append(negh_point)
 
                 else:
                     negh=[point[0]+self.dir_lines[i][0],point[1]+self.dir_lines[i][1]]
                     if (negh[0]>-1) and (negh[1]>-1) and (negh[0]<self.hor_size[0]) and (negh[1]<self.hor_size[1]):
-                        print("verlines cordinates{}".format(negh))
+                        #print("verlines cordinates{}".format(negh))
                         if(self.horlines[negh[0],negh[1]]==1):
                             negh_point=[point[0]+self.neighbours[i][0],point[1]+self.neighbours[i][1]]
-                            print("horline {} is present".format(negh))
+                            #print("horline {} is present".format(negh))
                             if self.maze[negh_point[0],negh_point[1]]>(value+1):
                                 self.maze[negh_point[0],negh_point[1]]=(value+1)
-                                print("point {} given value {}".format(negh_point,value+1))
+                                #print("point {} given value {}".format(negh_point,value+1))
                                 self.que.append(negh_point)
 
 
@@ -230,8 +339,10 @@ class Agent():
 
 def Main():
     config=read_config()
-    agent=Agent(config)
+    agent=Agent(config,"trial")
     #agent.flodfill(agent.positions['TF'][0])
+
+    print(agent.decode_responce("G120 L F R N"))
     agent.flodfill(agent.start)
     agent.render()
     print(agent.maze)

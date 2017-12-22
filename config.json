@@ -1,1 +1,8 @@
-{"Env_config": {"maze_size": [7, 12]}, "Serial_config": {"baud": 115200, "port": "COM5", "timeout": 1}}
+{"Env_config": {"maze_size": [7, 12]},
+ "Serial_config": {"baud": 115200, "port": "COM5", "timeout": 1},
+ "parameters": {
+ 		"trial":{"P": 1.38,"I": 0.0005,"D": 0.0017,"max_speed_L":180,"max_speed_R":180},
+ 		"final":{"P":0.561,"I":0.01,"D":0.075,"max_speed_L":180,"max_speed_R":180},
+ 		"test":{"P":0.561,"I":0.01,"D":0.075,"max_speed_L":180,"max_speed_R":180}
+ 	}
+ }

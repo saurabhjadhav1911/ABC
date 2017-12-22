@@ -40,17 +40,18 @@ class Env():
             self.ser.write(arr.encode())
 
         if(self.ser.inWaiting()>0):
-            c=self.ser.read()
-            
-            c=str(c,'utf-8')
+            c=self.ser.read() 
+            try:
+                c=str(c,'utf-8')
+            except Exception as e:
+                print(e)
+                c=""
+            #print(c)
+            c=str(c)
             #print(c)
             try:
                 if c is '|':
-                    #dta=data
-                    #nf+=1
-                    value=int(self.data.split())
-                    #print(dta)
-                    q.put(value)
+                    q.put(self.data)
                     self.data=""
                 else:
                 	self.data+=c
@@ -58,6 +59,8 @@ class Env():
             	exc_traceback=traceback.format_exc()
             	print(exc_traceback)
             	#pass
+
+
     def run(self,q,r):
         #ser=serial.Serial(config['Serial_config']['port'],baudrate=config['Serial_config']['baud'],timeout=config['Serial_config']['timeout'])
         time.sleep(5)

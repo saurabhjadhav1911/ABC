@@ -27,9 +27,9 @@ def Env_process_target(recieve_que,send_que,config):
     env=Env.Env(config)
     env.run(recieve_que,send_que)
 
-def Agent_process_target(recieve_que,send_que,config):
+def Agent_process_target(recieve_que,send_que,config,mode):
     print('Agent process start')
-    agent=Agent.Agent(config)
+    agent=Agent.Agent(config,mode)
     agent.run(recieve_que,send_que)
 
 
@@ -43,7 +43,7 @@ def Main():
 
     #process initialisation
     env_process=multiprocessing.Process(target=Env_process_target,args=(recieve_que,send_que,config))
-    agent_process=multiprocessing.Process(target=Agent_process_target,args=(recieve_que,send_que,config))
+    agent_process=multiprocessing.Process(target=Agent_process_target,args=(recieve_que,send_que,config,mode))
     #cam_process=multiprocessing.Process(target=Cam_process_target,args=(recieve_que,send_que,config))
 
     env_process.start()
