@@ -1,5 +1,5 @@
 import multiprocessing
-
+#import matplotlib.pyplot as plt
 import numpy as np
 from misc import *
 import serial
@@ -33,6 +33,7 @@ class Agent():
         self.prev_pos=self.start
         self.actions=[0,1,2,3]
         self.orientation=self.start_orientation
+        self.inhand='None'
         self.neighbours=[[-1,0],[0,1],[1,0],[0,-1]]
         self.dir_lines=[[-1,-1],[-1,0],[0,-1],[-1,-1]]
 
@@ -56,14 +57,15 @@ class Agent():
         self.dict={'RP':105,'ND':-10,'TF':-15,'AL':-20,'AR':-25,'IP':130,'IB':135,'RB':140,'BB':145}
         
 
-
+        self.inhand_color={'None':[0,0,0],'Red':[0,0,255],'Blue':[255,0,0],'Gray':[125,125,125]}
         for key in self.dict.keys():
             for pos in self.positions[key]:
                 self.maze[pos[0],pos[1]]=self.dict[key]
-
+        #plt.ion()
         self.pixelpercell=100
         self.img = np.zeros([self.pixelpercell*(self.maze.shape[0]-1),self.pixelpercell*(self.maze.shape[1]-1),3], np.uint8)
         self.img=self.load_background()
+        self.back=self.load_background()
 
         print(self.maze)
 
@@ -98,10 +100,17 @@ class Agent():
     0 - start
     1 - stop
 
-    20 - line follower testing mode
-    
-    40 - test drive motors forward with max speed
+    8 - led on
+    9 - led off
 
+    10 - line follower testing mode
+    11 - test drive motors forward with max speed
+
+    21 - delay miliseconds
+    22 - delay miliseconds
+    
+    30 - Turn command
+    
     70 - set speeds
 
     80 - set P
@@ -114,6 +123,7 @@ class Agent():
 
     ################################################
     """
+    
     def decode_responce(self,data):
         params={}
         try:
@@ -124,36 +134,61 @@ class Agent():
             params[term[0]]=float(term[1:]) if len(term)>1 else 1
         return params['G'],params
 
-    def do_action(self,G,values):
+    def process_responce(self,G,values):
         if G==120:
             if 'N' in values:
-                self.setLine(self.pos,self.global_orientation(self.ori,-1,-1))
-                self.setLine(self.pos,self.global_orientation(self.ori,0,-1))
-                self.setLine(self.pos,self.global_orientation(self.ori,1,-1))
-                self.setLine(self.pos,self.global_orientation(self.ori,2,-1))
+                self.setLine(self.pos,self.global_orientation(self.orientation,-1,-1))
+                self.setLine(self.pos,self.global_orientation(self.orientation,0,-1))
+                self.setLine(self.pos,self.global_orientation(self.orientation,1,-1))
+                self.setLine(self.pos,self.global_orientation(self.orientation,2,-1))
+                
+                self.parameters['NODE'].append(self.pos)
+                
             else:
                 if 'L' in values:
-                    self.setLine(self.pos,self.global_orientation(self.ori,-1,-1))
+                    self.setLine(self.pos,self.global_orientation(self.orientation,-1,-1))
                 if 'F' in values:
-                    self.setLine(self.pos,self.global_orientation(self.ori,0,-1))
+                    self.setLine(self.pos,self.global_orientation(self.orientation,0,-1))
                 if 'R' in values:
-                    self.setLine(self.pos,self.global_orientation(self.ori,1,-1))
+                    self.setLine(self.pos,self.global_orientation(self.orientation,1,-1))
 
-        elif G==1
-
+        elif G==121:
+            pass
+            
 
     def trial_run(self):
         #start
         self.action("G00")
-        self.pos[0],self.pos[1]=self.pos[0]+self.neighbours[self.ori][0],self.pos[1]+self.neighbours[self.ori][1]
 
+        self.action("G8")#led on
+
+        self.action("G21 V{}".format(1000))#delay
+
+        self.action("G9")#led off
+        
+        self.pos[0],self.pos[1]=self.pos[0]+self.neighbours[self.orientation][0],self.pos[1]+self.neighbours[self.orientation][1]
+        trial_run_directions=self.parameters['trial']['directions']
+        i=0
         while True:
             data=self.responce()
-            break_flag=self.do_action(self.decode_responce(data))
+            break_flag=self.process_responce(self.decode_responce(data))
+            if i < len(trial_run_directions):
+                self.Turn(trial_run_directions[i])
+            else:
+                self.action("G8")
+                break_flag=True
+
+            self.render()
+            
             if break_flag:
                 break
             
-
+        self.action("G9")
+        print(self.parameters)
+        
+    def Turn(self,t):
+        self.action("G30 T{}".fomat(t))
+        
     def setPID(self,P,I,D):
         self.action("G80 V{}".format(P))
         self.action("G81 V{}".format(I))
@@ -290,10 +325,14 @@ class Agent():
 
         return self.img
 
+    
     def render(self):
 
-        self.env=self.img.copy()
-
+        self.img=self.back.copy()
+        print(self.pos)
+        cv2.circle(self.img,(self.pixelpercell*self.pos[1],self.pixelpercell*self.pos[0]), 25, (255,255,255), -1)
+        cv2.circle(self.img,(self.pixelpercell*self.pos[1]+15*(self.neighbours[self.orientation][1]),self.pixelpercell*self.pos[0]+15*(self.neighbours[self.orientation][0])), 5,self.inhand_color[self.inhand], -1)
+        
         for i,row in enumerate(self.horlines):
             for j,v in enumerate(row):
                 if v !=1:
@@ -313,7 +352,8 @@ class Agent():
                 value=str(list(self.dict.keys())[list(self.dict.values()).index(self.maze[i,j])] if self.maze[i,j] < 0 else int(self.maze[i,j]))
                 cv2.putText( self.img,value,(int(b),int(a)),   cv2.FONT_HERSHEY_PLAIN, 1.4,(255,0 , 155), 2 )
 
-        cv2.imshow('Environment',self.img)
+        #plt.imshow(self.img)
+        cv2.imshow('Window',self.img)
         cv2.waitKey(0)
 
     def draw_block(self):
@@ -345,6 +385,7 @@ def Main():
     print(agent.decode_responce("G120 L F R N"))
     agent.flodfill(agent.start)
     agent.render()
+    time.sleep(5)
     print(agent.maze)
     cv2.destroyAllWindows()
 
