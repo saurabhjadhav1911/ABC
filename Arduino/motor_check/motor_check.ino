@@ -45,12 +45,30 @@
 String line = "", data = "", t;
 char c;
 boolean flag = false, sendflag = true;
-int camposition[3] = {0, 90, 180};
+int camposition[3] = {
+  0, 90, 180};
 int T, G = 0;
 int gservozero1 = 105, gservozero2 = 85, armservozero = 50, camservozero = 90;
 Servo cam_servo, gripper_servo1, gripper_servo2, arm_servo;
 
-int pr[2], negh[8][2] = {{ -1, 0}, { -1, 1}, {0, 1}, {1, 1}, {1, 0}, { 1, -1} , {0, -1}, { -1, -1}};
+int pr[2], negh[8][2] = {
+  { 
+    -1, 0                        }
+  , { 
+    -1, 1                        }
+  , {
+    0, 1                        }
+  , {
+    1, 1                        }
+  , {
+    1, 0                        }
+  , { 
+    1, -1                        } 
+  , {
+    0, -1                        }
+  , { 
+    -1, -1                        }
+};
 int nx, ny, ul, ur, ts[6], sm, endX = 5, endY = 2, startX = 3 , startY = 6 , address, cpm = 10, L, R;
 byte ori, co, currx, curry, minvalue, xn, ym, oi, rspd = rspdmin, lspd = lspdmin, rsp, lsp;
 unsigned long int rr, ll, dr, dl, prevdist, d;
@@ -227,6 +245,152 @@ void move_arm(int inpd)
 {
   arm_servo.write(armservozero + inpd);
 }
+void turn(byte tu) //turning at node
+{ 
+  Serial.println(tu);
+  tur = 1;
+
+  switch (tu) {
+    case (1):
+    { 
+      stepmotor(kds - 1, lspdt, (-rspdt));
+      sense();
+      while ((bitRead(c, 7)))
+      { 
+        stepmotor(1, lspdt, (-rspdt));
+        /*Serial.print(F("dl"));
+         Serial.print(dl);
+         Serial.print(F("dr"));
+         Serial.println(dr);*/
+        sense();
+      }
+      break;
+    }
+    case (2):
+    { 
+      stepmotor(2 * kds, lspdt, (-rspdt));
+      sense();
+      while ((bitRead(c, 7)))
+      { 
+        stepmotor(1, lspdt, (-rspdt));
+        /*Serial.print(F("dl"));
+         Serial.print(dl);
+         Serial.print(F("dr"));
+         Serial.println(dr);*/
+        sense();
+      }
+      break;
+    }
+    case (3):
+    { 
+      stepmotor(3 * kds, lspdt, (-rspdt));
+      sense();
+      while ((bitRead(c, 7)))
+      { 
+        stepmotor(1, lspdt, (-rspdt));
+        /*Serial.print(F("dl"));
+         Serial.print(dl);
+         Serial.print(F("dr"));
+         Serial.println(dr);*/
+        sense();
+      }
+      break;
+    }
+    case (7):
+    { 
+      stepmotor(kds - 1, (-lspdt), rspdt );
+      sense();
+      while ((bitRead(c, 7)))
+      { 
+        stepmotor(1, (-lspdt), rspdt );
+        /*Serial.print(F("dl"));
+         Serial.print(dl);
+         Serial.print(F("dr"));
+         Serial.println(dr);*/
+        sense();
+      }
+      break;
+    }
+    case (6):
+    { 
+      stepmotor(2 * kds, (-lspdt), rspdt );
+      sense();
+      while ((bitRead(c, 7)))
+      { 
+        stepmotor(1, (-lspdt), rspdt );
+        /*Serial.print(F("dl"));
+         Serial.print(dl);
+         Serial.print(F("dr"));
+         Serial.println(dr);*/
+        sense();
+      }
+      break;
+    }
+    case (5):
+    { 
+      stepmotor(3 * kds, (-lspdt), rspdt );
+      sense();
+      while ((bitRead(c, 7)))
+      { 
+        stepmotor(1, (-lspdt), rspdt );
+        /*Serial.print(F("dl"));
+         Serial.print(dl);
+         Serial.print(F("dr"));
+         Serial.println(dr);*/
+        sense();
+      }
+      break;
+    }
+    case (4):
+    {
+      stepmotor(4 * kds, lspdt , -rspdt);
+      sense();
+      while ((bitRead(c, 7)))
+      { 
+        stepmotor(1, lspdt, (-rspdt));
+        /*Serial.print(F("dl"));
+         Serial.print(dl);
+         Serial.print(F("dr"));
+         Serial.println(dr);*/
+        sense();
+      }
+      break;
+    }
+  }
+  /*  if (tu != 0)
+   { dis = 5;
+   do
+   {
+   sense();
+   gen();
+   
+   }
+   while (!(bitRead(c, 2)));
+   motor(0, 0);
+   input = 0;
+   pinput = 0;
+   I = 0;
+   prevdist = dl + dr;
+   Serial.print(F("s");
+   do
+   {
+   sense();
+   gen();
+   Serial.print(F("\t");
+   Serial.print(dl);
+   Serial.print(F("\t");
+   Serial.print(dr);
+   }
+   while (((dl + dr - prevdist) < 3) || (!(bitRead(c, 2))) ); //|| (bitRead(c, 1)) || (bitRead(c, 2)) || (bitRead(c, 3))
+   }*/
+  Serial.print(F("s"));
+  stopp();//motor(0, 0);
+  pr[0] += negh[ori][0];
+  pr[1] += negh[ori][1];
+  ori = sori(tu);
+  tur = 0;
+  dis = 3;
+}
 void process_string(String instruction)
 {
   int i = 0;
@@ -237,100 +401,225 @@ void process_string(String instruction)
       switch (instruction[i])
       {
         case ('G'):
+        {
+          i++;
+          t = "";
+          while (instruction[i] != ' ')
           {
+            t += instruction[i];
             i++;
-            t = "";
-            while (instruction[i] != ' ')
-            {
-              t += instruction[i];
-              i++;
-            }
-            G = t.toInt();
-            break;
           }
+          G = t.toInt();
+          break;
+        }
         case ('L'):
+        {
+          t = "";
+          i++;
+          while (instruction[i] != ' ')
           {
-            t = "";
+            t += instruction[i];
             i++;
-            while (instruction[i] != ' ')
-            {
-              t += instruction[i];
-              i++;
-            }
-            L = t.toInt();
-            break;
           }
+          L = t.toInt();
+          break;
+        }
         case ('R'):
+        {
+          t = "";
+          i++;
+          while (instruction[i] != ' ')
           {
-            t = "";
+            t += instruction[i];
             i++;
-            while (instruction[i] != ' ')
-            {
-              t += instruction[i];
-              i++;
-            }
-            R = t.toInt();
-            drive_motors(L, R);
-            break;
           }
+          R = t.toInt();
+          drive_motors(L, R);
+          break;
+        }
         case ('C'):
+        {
+          t = "";
+          i++;
+          while (instruction[i] != ' ')
           {
-            t = "";
+            t += instruction[i];
             i++;
-            while (instruction[i] != ' ')
-            {
-              t += instruction[i];
-              i++;
-            }
-
-            move_cam(t.toInt());
-            break;
           }
+
+          move_cam(t.toInt());
+          break;
+        }
         case ('A'):
+        {
+          i++;
+          t = "";
+          while (instruction[i] != ' ')
           {
+            t += instruction[i];
             i++;
-            t = "";
-            while (instruction[i] != ' ')
-            {
-              t += instruction[i];
-              i++;
-            }
-
-            move_gripper(t.toInt());
-            break;
           }
+
+          move_gripper(t.toInt());
+          break;
+        }
         case ('J'):
+        {
+          i++;
+          t = "";
+          while (instruction[i] != ' ')
           {
+            t += instruction[i];
             i++;
-            t = "";
-            while (instruction[i] != ' ')
-            {
-              t += instruction[i];
-              i++;
-            }
+          }
 
-            move_arm(t.toInt());
-            break;
-          }
+          move_arm(t.toInt());
+          break;
+        }
         case ('T'):
+        {
+          i++;
+          t = "";
+          while (instruction[i] != ' ')
           {
+            t += instruction[i];
             i++;
-            t = "";
-            while (instruction[i] != ' ')
-            {
-              t += instruction[i];
-              i++;
-            }
-            T = t.toInt();
-            break;
           }
+          T = t.toInt();
+          turn()
+            break;
+        }
+        case ('V'):
+        {
+          i++;
+          t = "";
+          while (instruction[i] != ' ')
+          {
+            t += instruction[i];
+            i++;
+          }
+          V = t.toFloat();
+          break;
+        }
       }
       i++;
     }
+    switch(G)
+    {
+      /*
+  
+       ################## G commands ##################
+       
+       from master to robot 
+       ...
+       
+       from robot to master
+       
+       120 - lines present L F R N
+       
+       ################################################
+       
+       */
 
+      case(0) //      0 - start
+      {
+        start_flag=true;
+        break;
+      }
+      case(1) //      1 - stop
+
+      {
+        start_flag=false;
+        brake();
+        break;
+      }
+
+
+      //        8 - led on
+      case(8)
+      {
+        digitalWrite(led_pin,HIGH);
+        break;
+      }
+
+      //        9 - led off
+      case(9)
+      {
+        digitalWrite(led_pin,LOW);
+        break;
+      }
+
+
+      //      10 - line follower testing mode
+      case(10)
+      {
+        lfr_mode=true;
+        break;
+      }
+
+      //      11 - test drive motors forward with max speed
+      case(11)
+      {
+        motor(125, 125);
+        delay(2000);
+
+        motor(-125, -125);
+        delay(1000);
+      }
+
+      //      21 - delay miliseconds
+      case(21)
+      {
+        delay(V);
+        break;
+      }
+
+      //22 - delay microseconds
+      case()
+      {
+        delayMicroseconds(V)
+          break;
+      }
+
+      //      30 - Turn command
+      case(30)
+      {
+        turn(T);
+        break;
+      }
+
+      //      70 - set speeds
+      case(70)
+      {
+        lspd=L;
+        rspd=R;
+        break;
+      }
+
+      //      80 - set P
+
+      case(80)
+      {
+        Kp=V;
+        break;
+      }
+      //        81 - set I
+      case(81)
+      {
+        Ki=V;
+        break;
+      }
+      //        82 - set D
+      case(80)
+      {
+        Kd=V;
+        break;
+      }
+    }
   }
 
 }
+drive_motors(L, R);
 void do_action()
 {
   Serial.println("Start next");
@@ -360,28 +649,28 @@ void setup()
   // trialmaze();
   /*
 
-    pinMode(12, INPUT_PULLUP);
-    pinMode(endp, INPUT_PULLUP);
-    pinMode(13, 1);
-    pinMode(l1, 1);
-    pinMode(l2, 1);
-    pinMode(sl, 1);
-    pinMode(r1, 1);
-    pinMode(r2, 1);
-    pinMode(sr, 1);
-    //setmode();
-    while (digitalRead(12) == 1)
-    {}
-    //resetconditions();
-    delay(500);
-    digitalWrite(13, 0);
-    digitalWrite(13, 1);
-    digitalWrite(13, 0);
-    //stepmotor(1, lspd, rspd)
-    //motor(lspd, rspd);
-    //delay(2000);
-    //pidcheck();
-  */
+   pinMode(12, INPUT_PULLUP);
+   pinMode(endp, INPUT_PULLUP);
+   pinMode(13, 1);
+   pinMode(l1, 1);
+   pinMode(l2, 1);
+   pinMode(sl, 1);
+   pinMode(r1, 1);
+   pinMode(r2, 1);
+   pinMode(sr, 1);
+   //setmode();
+   while (digitalRead(12) == 1)
+   {}
+   //resetconditions();
+   delay(500);
+   digitalWrite(13, 0);
+   digitalWrite(13, 1);
+   digitalWrite(13, 0);
+   //stepmotor(1, lspd, rspd)
+   //motor(lspd, rspd);
+   //delay(2000);
+   //pidcheck();
+   */
   cam_servo.write(camservozero);
   gripper_servo1.write(gservozero1);
   gripper_servo2.write(gservozero2);
@@ -389,9 +678,17 @@ void setup()
 }
 void loop()
 {
-  motor(125, 125);
-  delay(2000);
 
-  motor(-125, -125);
-  delay(1000);
 }
+
+
+
+
+
+
+
+
+
+
+
+

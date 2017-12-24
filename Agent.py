@@ -105,11 +105,13 @@ class Agent():
 
     10 - line follower testing mode
     11 - test drive motors forward with max speed
-
+    
     21 - delay miliseconds
     22 - delay miliseconds
     
     30 - Turn command
+
+    40 - color inversion flag
     
     70 - set speeds
 
@@ -146,11 +148,11 @@ class Agent():
                 
             else:
                 if 'L' in values:
-                    self.setLine(self.pos,self.global_orientation(self.orientation,-1,-1))
+                    self.setLine(self.pos,self.global_orientation(self.orientation,-1,1))
                 if 'F' in values:
-                    self.setLine(self.pos,self.global_orientation(self.orientation,0,-1))
+                    self.setLine(self.pos,self.global_orientation(self.orientation,0,1))
                 if 'R' in values:
-                    self.setLine(self.pos,self.global_orientation(self.orientation,1,-1))
+                    self.setLine(self.pos,self.global_orientation(self.orientation,1,1))
 
         elif G==121:
             pass
