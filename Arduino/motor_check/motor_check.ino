@@ -37,6 +37,10 @@
 #define INT 0
 #define thres 500
 #define midst 10
+#define dla 2
+#define dlb 4
+#define dra 3
+#define drb 8
 
 String line = "", data = "", t;
 char c;
@@ -158,11 +162,49 @@ void rightstepmotor(int stepsr, int rightm)
 }
 void spl()//
 {
-  dl++;
+
+  if (digitalRead(dla))
+  {
+    if (digitalRead(dlb))
+    {
+      dl++;
+    }
+    else {
+      dl--;
+    }
+  }
+  else {
+    if (digitalRead(dlb))
+    {
+      dl--;
+    }
+    else {
+      dl++;
+    }
+  }
 }
-void spr() //interupt function right rotary encoder//
+void spr()//
 {
-  dr++;
+
+  if (digitalRead(dra))
+  {
+    if (digitalRead(drb))
+    {
+      dr++;
+    }
+    else {
+      dr--;
+    }
+  }
+  else {
+    if (digitalRead(drb))
+    {
+      dr--;
+    }
+    else {
+      dr++;
+    }
+  }
 }
 void drive_motors(int Ls, int Rs)
 {
@@ -296,8 +338,8 @@ void do_action()
 
 void setup()
 {
-  attachInterrupt(0, spl, HIGH);
-  attachInterrupt(1, spr, HIGH);
+  attachInterrupt(digitalPinToInterrupt(dla), spl, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(dra), spr, CHANGE);
 
   Serial.begin(115200);
 
