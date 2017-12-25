@@ -48,26 +48,27 @@ boolean flag = false, sendflag = true;
 int camposition[3] = {
   0, 90, 180};
 int T, G = 0;
+float V;
 int gservozero1 = 105, gservozero2 = 85, armservozero = 50, camservozero = 90;
 Servo cam_servo, gripper_servo1, gripper_servo2, arm_servo;
 
 int pr[2], negh[8][2] = {
   { 
-    -1, 0                        }
+    -1, 0                                                  }
   , { 
-    -1, 1                        }
+    -1, 1                                                  }
   , {
-    0, 1                        }
+    0, 1                                                  }
   , {
-    1, 1                        }
+    1, 1                                                  }
   , {
-    1, 0                        }
+    1, 0                                                  }
   , { 
-    1, -1                        } 
+    1, -1                                                  } 
   , {
-    0, -1                        }
+    0, -1                                                  }
   , { 
-    -1, -1                        }
+    -1, -1                                                  }
 };
 int nx, ny, ul, ur, ts[6], sm, endX = 5, endY = 2, startX = 3 , startY = 6 , address, cpm = 10, L, R;
 byte ori, co, currx, curry, minvalue, xn, ym, oi, rspd = rspdmin, lspd = lspdmin, rsp, lsp;
@@ -231,6 +232,38 @@ void drive_motors(int Ls, int Rs)
 
   stepmotor(abs((Ls + Rs) / 2), (Ls / abs(Ls)), (Rs / abs(Rs)));
 
+}
+
+void sense()
+{
+  sen[5] = lcolorb ^ (analogRead(A0) < thres);
+  sen[4] = lcolorb ^ (analogRead(A2) < thres);
+  sen[3] = lcolorb ^ (analogRead(A3) < thres);
+  sen[2] = lcolorb ^ (analogRead(A4) < thres);
+  sen[1] = lcolorb ^ (analogRead(A5) < thres);
+  sen[0] = lcolorb ^ (analogRead(A1) > 600);
+
+  c = 0;
+
+  bitWrite(c, (7), sen[0]);
+  bitWrite(c, (6), sen[1]);
+  bitWrite(c, (5), sen[2]);
+  bitWrite(c, (4), sen[3]);
+  bitWrite(c, (3), sen[4]);
+  bitWrite(c, (2), sen[5]);
+  //c ^= lcolor;
+  //c &= 0b11110000;
+  //Serial.print(dl);
+  //Serial.print("\t");
+  if ((c == 0b01111100) && (!endc)) {
+    endc = 1;
+    endd = dl + dr;
+  }
+  if (((dl + dr - endd) > 15) && (c == 0b01111100) && endc) endr = true;
+
+  //Serial.print(dr);
+  //Serial.print("\t");
+  //Serial.println();
 }
 void move_cam(int inpd)
 {
@@ -521,12 +554,12 @@ void process_string(String instruction)
        
        */
 
-      case(0) //      0 - start
+      case(0): //      0 - start
       {
         start_flag=true;
         break;
       }
-      case(1) //      1 - stop
+      case(1): //      1 - stop
 
       {
         start_flag=false;
@@ -536,14 +569,14 @@ void process_string(String instruction)
 
 
       //        8 - led on
-      case(8)
+      case(8):
       {
         digitalWrite(led_pin,HIGH);
         break;
       }
 
       //        9 - led off
-      case(9)
+      case(9):
       {
         digitalWrite(led_pin,LOW);
         break;
@@ -551,14 +584,14 @@ void process_string(String instruction)
 
 
       //      10 - line follower testing mode
-      case(10)
+      case(10):
       {
         lfr_mode=true;
         break;
       }
 
       //      11 - test drive motors forward with max speed
-      case(11)
+      case(11):
       {
         motor(125, 125);
         delay(2000);
@@ -568,49 +601,27 @@ void process_string(String instruction)
       }
 
       //      21 - delay miliseconds
-      case(21)
+      case(21):
       {
         delay(V);
         break;
       }
 
       //22 - delay microseconds
-      case()
-      {
-        delayMicroseconds(V)
-          break;
-      }
-
-      //      30 - Turn command
-      case(30)
-      {
-        turn(T);
-        break;
-      }
-
-      //      70 - set speeds
-      case(70)
-      {
-        lspd=L;
-        rspd=R;
-        break;
-      }
-
-      //      80 - set P
-
-      case(80)
+      case(80):
+      
       {
         Kp=V;
         break;
       }
       //        81 - set I
-      case(81)
+      case(81):
       {
         Ki=V;
         break;
       }
       //        82 - set D
-      case(80)
+      case(82):
       {
         Kd=V;
         break;
@@ -624,7 +635,47 @@ void do_action()
 {
   Serial.println("Start next");
 }
+int digitalPinToInterrupt(int pin)
+{
+  int intpin;
+  switch(pin)
+  {
+    case(2):
+    {
 
+
+      intpin=0;
+      break;
+
+    }
+    case(3):
+    {
+      intpin=1;
+      break;
+    }
+    case(21):
+    {
+      intpin=2;
+      break;
+    }
+    case(20):
+    {
+      intpin=3;
+      break;
+    }
+    case(19):
+    {
+      intpin=4;
+      break;
+    }
+    case(18):
+    {
+      intpin=5;
+      break;
+    }
+  }
+  return(intpin);
+}
 void setup()
 {
   attachInterrupt(digitalPinToInterrupt(dla), spl, CHANGE);
@@ -678,8 +729,23 @@ void setup()
 }
 void loop()
 {
-
+  Serial.print(dl);
+  Serial.print("\t");
+  Serial.println(dr);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
