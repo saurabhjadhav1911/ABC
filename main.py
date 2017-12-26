@@ -18,14 +18,12 @@ import os
 import traceback
 #sys.path.append(os.path.join(os.path.dirname(__file__),'..'))
 
+mode="test"
 def Cam_process_target(recieve_que,send_que,config):
-    cam=Cam.Cam(config)
-    cam.run(recieve_que,send_que)
+    #cam=Cam.Cam(config)
+    #cam.run(recieve_que,send_que)
+    pass
 
-def Env_process_target(recieve_que,send_que,config):
-    print('Env process start')
-    env=Env.Env(config)
-    env.run(recieve_que,send_que)
 
 def Agent_process_target(recieve_que,send_que,config,mode):
     print('Agent process start')
@@ -42,16 +40,16 @@ def Main():
     recieve_que=multiprocessing.Queue()
 
     #process initialisation
-    env_process=multiprocessing.Process(target=Env_process_target,args=(recieve_que,send_que,config))
+    #env_process=multiprocessing.Process(target=Env_process_target,args=(recieve_que,send_que,config))
     agent_process=multiprocessing.Process(target=Agent_process_target,args=(recieve_que,send_que,config,mode))
     #cam_process=multiprocessing.Process(target=Cam_process_target,args=(recieve_que,send_que,config))
 
-    env_process.start()
+    #env_process.start()
     agent_process.start()
     #cam_process.start()
     
     agent_process.join()
-    env_process.join()
+    #env_process.join()
     #cam_process.start()
     
 

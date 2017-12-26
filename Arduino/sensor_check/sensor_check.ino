@@ -18,11 +18,10 @@ void loop() {
   // read the input on analog pin 0:
 
   // print out the value you read:
-  /*
   for (int i = 0; i < 6; i++)
   {
     Serial.print(analogRead(i));
-    Serial.print("  ");
-  }*/
-  Serial.println(analogRead(0));
+    Serial.print(" ");
+  }
+  Serial.println("|");
 }

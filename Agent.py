@@ -19,6 +19,12 @@ class Agent():
         self.config=config
         self.mode=mode # "trial"
         print('Agent created')
+        self.ser=self.get_Serial()
+        time.sleep(1)
+        self.timeout=config['Serial_config']['custom_timeout']
+        print('Serial started')
+        self.data=""
+        
         self.maze_size=config['Env_config']['maze_size']
         self.maze=100*np.ones((self.maze_size[0],self.maze_size[1]))
         self.verlines=np.ones((self.maze_size[0],self.maze_size[1]-2))
@@ -68,6 +74,9 @@ class Agent():
         self.back=self.load_background()
 
         print(self.maze)
+
+    def get_Serial(self):
+        return serial.Serial(self.config['Serial_config']['port'],baudrate=self.config['Serial_config']['baud'],timeout=self.config['Serial_config']['timeout'])
 
     def remove_lines(self):
         pass
@@ -210,23 +219,107 @@ class Agent():
         ##########################################################################
 
     def tunePID(self):
-        pass
+        
+        while True:
+            data=input()
+            if data=="exit":
+                break
+            if(data[0]=='p'):
+                if(data[1]=='+'):
+                    self.P +=float(data[2:])
+                elif(data[1]=='-'):
+                    self.P -=float(data[2:])
+                else:
+                    self.P =float(data[2:])
+                    
+            elif(data[0]=='i'):
+                
+                if(data[1]=='+'):
+                    self.I +=float(data[2:])
+                elif(data[1]=='-'):
+                    self.I -=float(data[2:])
+                else:
+                    self.I =float(data[2:])
+                    
+            elif(data[0]=='d'):
+                
+                if(data[1]=='+'):
+                    self.D +=float(data[2:])
+                elif(data[1]=='-'):
+                    self.D -=float(data[2:])
+                else:
+                    self.D =float(data[2:])
 
+            elif(data[0]=='l'):
+                
+                if(data[1]=='+'):
+                    self.L +=float(data[2:])
+                elif(data[1]=='-'):
+                    self.L -=float(data[2:])
+                else:
+                    self.L =float(data[2:])
+
+            elif(data[0]=='r'):
+                if(data[1]=='+'):
+                    self.R +=float(data[2:])
+                elif(data[1]=='-'):
+                    self.R -=float(data[2:])
+                else:
+                    self.R =float(data[2:])
+                    
+            elif(data[0]=='s'):
+                self.parameters[self.mode]['P'],self.parameters[self.mode]['P'],self.parameters[self.mode]['P']=self.P,self.I,self.D
+                
+            self.setPID(self.P,self.I,self.D)
+            self.setSpeeds(self.L,self.R)
+            print("P{} I{} D{}".format(self.P,self.I,self.D))
+        
     def final_run(self):
         pass
 
     def test_run(self):
-        pass
-
-    def action(self,act):
-        self.send_que.put(act)
+        time.sleep(2)
+        self.action("G10")
+        self.setSpeeds(self.parameters[self.mode]['max_speed_L'],self.parameters[self.mode]['max_speed_R']) ## max sppeds of motors
+        self.setPID(self.parameters[self.mode]["P"],self.parameters[self.mode]["I"],self.parameters[self.mode]["D"]) # set default PID
+        
+        self.L,self.R=self.parameters[self.mode]["max_speed_L"],self.parameters[self.mode]["max_speed_R"] ## max sppeds of motors
+        self.P,self.I,self.D=self.parameters[self.mode]["P"],self.parameters[self.mode]["I"],self.parameters[self.mode]["D"] # set default PID
+        self.tunePID()
+    def action(self,arr):
+        print(arr)
+        arr+="|"
+        self.ser.write(arr.encode())
 
     def responce(self):
-        if(self.reciev_que.empty()):
-            while self.reciev_que.empty():
+        data=""
+        print(self.ser.inWaiting())
+        if(self.ser.inWaiting()<1):
+            prev_time=time.time()
+            while self.ser.inWaiting()<1:
+                if((time.time()-prev_time)>self.timeout):
+                    break
                 pass
-            data=self.reciev_que.get()
-        return data
+        while self.ser.inWaiting()>0:
+            c=self.ser.read()
+            try:
+                c=str(c,'utf-8')
+            except Exception as e:
+                print(e)
+                c=""
+            c=str(c)
+            try:
+                if c is '|':
+                    self.data=data
+                    data=""
+                else:
+                        data+=c
+            except Exception as e:
+                exc_traceback=traceback.format_exc()
+                print(exc_traceback)
+                #pass
+                print(self.ser.inWaiting())
+        return self.data
 
     def run(self,reciev_que,send_que):
         self.send_que=send_que
@@ -381,15 +474,14 @@ class Agent():
 
 def Main():
     config=read_config()
-    agent=Agent(config,"trial")
+    agent=Agent(config,"test")
     #agent.flodfill(agent.positions['TF'][0])
+    #initialise communicatoions between processes
+    send_que=multiprocessing.Queue()
+    recieve_que=multiprocessing.Queue()
 
-    print(agent.decode_responce("G120 L F R N"))
-    agent.flodfill(agent.start)
-    agent.render()
-    time.sleep(5)
-    print(agent.maze)
-    cv2.destroyAllWindows()
+    agent.run(send_que,recieve_que)
+
 
 if __name__ == '__main__':
     Main()

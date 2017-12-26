@@ -67,7 +67,6 @@ class Env():
         while True:
             self.read_write_state(q,r)
 
-
 if __name__ == '__main__':
     
     env=Env(read_config())

@@ -1,9 +1,9 @@
 {"Env_config": {"maze_size": [7, 12]},
- "Serial_config": {"baud": 115200, "port": "COM5", "timeout": 1},
+ "Serial_config": {"baud": 115200, "port": "COM16", "timeout": 1,"custom_timeout": 5},
  "parameters": {
  		"trial":{"P": 1.38,"I": 0.0005,"D": 0.0017,"max_speed_L":180,"max_speed_R":180,
 				"directions":[0,0,0,-1,-1,0,0,1,1,0,0,-1,-1,0,0,1,1,0,0,0,0,0,0,0,0,1,0,1,0,1,-1,-10,0,-1,0,0,-1,-1,0]},
  		"final":{"P":0.561,"I":0.01,"D":0.075,"max_speed_L":180,"max_speed_R":180},
- 		"test":{"P":0.561,"I":0.01,"D":0.075,"max_speed_L":180,"max_speed_R":180}
+ 		"test":{"P":0.05,"I":0.0,"D":0.0,"max_speed_L":255,"max_speed_R":255}
  	}
  }

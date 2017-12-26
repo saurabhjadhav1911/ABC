@@ -346,7 +346,7 @@ void sense()
   sen[3] = lcolorb ^ (analogRead(A3) < thres);
   sen[2] = lcolorb ^ (analogRead(A4) < thres);
   sen[1] = lcolorb ^ (analogRead(A5) < thres);
-  sen[0] = lcolorb ^ (analogRead(A1) > 600);
+  sen[0] = lcolorb ^ (analogRead(A1) > thres);
 
   c = 0;
 
