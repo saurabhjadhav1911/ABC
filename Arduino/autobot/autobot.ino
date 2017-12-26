@@ -11,11 +11,11 @@
 #define kdsf 7
 #define kds2 15
 #define r1 4//D4
-#define r2 5//D5
+#define r2 7//D5
 #define sr 6//D6
-#define l1 12//B0
-#define l2 13//D7
-#define sl 11//B1
+#define l1 13//B0
+#define l2 12//D7
+#define sl 5//B1
 #define consKpt 1.38
 #define consKit 0.0005
 #define consKdt 0.0017
@@ -37,16 +37,48 @@
 #define INT 0
 #define thres 500
 #define midst 10
-
+#define dla 20
+#define dlb 21
+#define dra 18
+#define drb 19
+#define led_pin 13
 String line = "", data = "", t;
 char c;
-boolean flag = false, sendflag = true;
-int camposition[3] = {0, 90, 180};
+boolean flag = false, sendflag = true, start_flag = false, lfr_mode = false;
+int camposition[3] = {
+  0, 90, 180
+};
 int T, G = 0;
-int gservozero1 = 90, gservozero2 = 90, armservozero = 90;
+float V;
+int gservozero1 = 105, gservozero2 = 85, armservozero = 50, camservozero = 90;
 Servo cam_servo, gripper_servo1, gripper_servo2, arm_servo;
 
-int pr[2], negh[8][2] = {{ -1, 0}, { -1, 1}, {0, 1}, {1, 1}, {1, 0}, { 1, -1} , {0, -1}, { -1, -1}};
+int pr[2], negh[8][2] = {
+  {
+    -1, 0
+  }
+  , {
+    -1, 1
+  }
+  , {
+    0, 1
+  }
+  , {
+    1, 1
+  }
+  , {
+    1, 0
+  }
+  , {
+    1, -1
+  }
+  , {
+    0, -1
+  }
+  , {
+    -1, -1
+  }
+};
 int nx, ny, ul, ur, ts[6], sm, endX = 5, endY = 2, startX = 3 , startY = 6 , address, cpm = 10, L, R;
 byte ori, co, currx, curry, minvalue, xn, ym, oi, rspd = rspdmin, lspd = lspdmin, rsp, lsp;
 unsigned long int rr, ll, dr, dl, prevdist, d;
@@ -68,20 +100,20 @@ void motor(int left, int right) //drive motor//
 void lm(int lsp)//
 {
   if (lsp >= 0) {
-    /*
-      digitalWrite(l1, 1);
-      digitalWrite(l2, 0);*/
 
-    PORTB |= 0b00000001;
-    PORTD &= 0b01111111;
+    digitalWrite(l1, 1);
+    digitalWrite(l2, 0);
+
+    //PORTB |= 0b00000001;
+    //PORTD &= 0b01111111;
     analogWrite(sl, lsp);
   }
   else {
-    /*
-      digitalWrite(l1, 0);
-      digitalWrite(l2, 1);*/
-    PORTD |= 0b10000000;
-    PORTB &= 0b11111110;
+
+    digitalWrite(l1, 0);
+    digitalWrite(l2, 1);
+    //PORTD |= 0b10000000;
+    //PORTB &= 0b11111110;
     analogWrite(sl, -lsp);
   }
 }
@@ -158,11 +190,49 @@ void rightstepmotor(int stepsr, int rightm)
 }
 void spl()//
 {
-  dl++;
+
+  if (digitalRead(dla))
+  {
+    if (digitalRead(dlb))
+    {
+      dl--;
+    }
+    else {
+      dl++;
+    }
+  }
+  else {
+    if (digitalRead(dlb))
+    {
+      dl++;
+    }
+    else {
+      dl--;
+    }
+  }
 }
-void spr() //interupt function right rotary encoder//
+void spr()//
 {
-  dr++;
+
+  if (digitalRead(dra))
+  {
+    if (digitalRead(drb))
+    {
+      dr--;
+    }
+    else {
+      dr++;
+    }
+  }
+  else {
+    if (digitalRead(drb))
+    {
+      dr++;
+    }
+    else {
+      dr--;
+    }
+  }
 }
 void drive_motors(int Ls, int Rs)
 {
@@ -171,6 +241,38 @@ void drive_motors(int Ls, int Rs)
 
   stepmotor(abs((Ls + Rs) / 2), (Ls / abs(Ls)), (Rs / abs(Rs)));
 
+}
+
+void sense()
+{
+  sen[5] = lcolorb ^ (analogRead(A0) < thres);
+  sen[4] = lcolorb ^ (analogRead(A2) < thres);
+  sen[3] = lcolorb ^ (analogRead(A3) < thres);
+  sen[2] = lcolorb ^ (analogRead(A4) < thres);
+  sen[1] = lcolorb ^ (analogRead(A5) < thres);
+  sen[0] = lcolorb ^ (analogRead(A1) > 600);
+
+  c = 0;
+
+  bitWrite(c, (7), sen[0]);
+  bitWrite(c, (6), sen[1]);
+  bitWrite(c, (5), sen[2]);
+  bitWrite(c, (4), sen[3]);
+  bitWrite(c, (3), sen[4]);
+  bitWrite(c, (2), sen[5]);
+  //c ^= lcolor;
+  //c &= 0b11110000;
+  //Serial.print(dl);
+  //Serial.print("\t");
+  if ((c == 0b01111100) && (!endc)) {
+    endc = 1;
+    endd = dl + dr;
+  }
+  if (((dl + dr - endd) > 15) && (c == 0b01111100) && endc) endr = true;
+
+  //Serial.print(dr);
+  //Serial.print("\t");
+  //Serial.println();
 }
 void move_cam(int inpd)
 {
@@ -184,6 +286,157 @@ void move_gripper(int inpd)
 void move_arm(int inpd)
 {
   arm_servo.write(armservozero + inpd);
+}
+void turn(byte tu) //turning at node
+{
+  Serial.println(tu);
+  tur = 1;
+
+  switch (tu) {
+    case (1):
+      {
+        stepmotor(kds - 1, lspdt, (-rspdt));
+        sense();
+        while ((bitRead(c, 7)))
+        {
+          stepmotor(1, lspdt, (-rspdt));
+          /*Serial.print(F("dl"));
+            Serial.print(dl);
+            Serial.print(F("dr"));
+            Serial.println(dr);*/
+          sense();
+        }
+        break;
+      }
+    case (2):
+      {
+        stepmotor(2 * kds, lspdt, (-rspdt));
+        sense();
+        while ((bitRead(c, 7)))
+        {
+          stepmotor(1, lspdt, (-rspdt));
+          /*Serial.print(F("dl"));
+            Serial.print(dl);
+            Serial.print(F("dr"));
+            Serial.println(dr);*/
+          sense();
+        }
+        break;
+      }
+    case (3):
+      {
+        stepmotor(3 * kds, lspdt, (-rspdt));
+        sense();
+        while ((bitRead(c, 7)))
+        {
+          stepmotor(1, lspdt, (-rspdt));
+          /*Serial.print(F("dl"));
+            Serial.print(dl);
+            Serial.print(F("dr"));
+            Serial.println(dr);*/
+          sense();
+        }
+        break;
+      }
+    case (7):
+      {
+        stepmotor(kds - 1, (-lspdt), rspdt );
+        sense();
+        while ((bitRead(c, 7)))
+        {
+          stepmotor(1, (-lspdt), rspdt );
+          /*Serial.print(F("dl"));
+            Serial.print(dl);
+            Serial.print(F("dr"));
+            Serial.println(dr);*/
+          sense();
+        }
+        break;
+      }
+    case (6):
+      {
+        stepmotor(2 * kds, (-lspdt), rspdt );
+        sense();
+        while ((bitRead(c, 7)))
+        {
+          stepmotor(1, (-lspdt), rspdt );
+          /*Serial.print(F("dl"));
+            Serial.print(dl);
+            Serial.print(F("dr"));
+            Serial.println(dr);*/
+          sense();
+        }
+        break;
+      }
+    case (5):
+      {
+        stepmotor(3 * kds, (-lspdt), rspdt );
+        sense();
+        while ((bitRead(c, 7)))
+        {
+          stepmotor(1, (-lspdt), rspdt );
+          /*Serial.print(F("dl"));
+            Serial.print(dl);
+            Serial.print(F("dr"));
+            Serial.println(dr);*/
+          sense();
+        }
+        break;
+      }
+    case (4):
+      {
+        stepmotor(4 * kds, lspdt , -rspdt);
+        sense();
+        while ((bitRead(c, 7)))
+        {
+          stepmotor(1, lspdt, (-rspdt));
+          /*Serial.print(F("dl"));
+            Serial.print(dl);
+            Serial.print(F("dr"));
+            Serial.println(dr);*/
+          sense();
+        }
+        break;
+      }
+  }
+  /*  if (tu != 0)
+    { dis = 5;
+    do
+    {
+    sense();
+    gen();
+
+    }
+    while (!(bitRead(c, 2)));
+    motor(0, 0);
+    input = 0;
+    pinput = 0;
+    I = 0;
+    prevdist = dl + dr;
+    Serial.print(F("s");
+    do
+    {
+    sense();
+    gen();
+    Serial.print(F("\t");
+    Serial.print(dl);
+    Serial.print(F("\t");
+    Serial.print(dr);
+    }
+    while (((dl + dr - prevdist) < 3) || (!(bitRead(c, 2))) ); //|| (bitRead(c, 1)) || (bitRead(c, 2)) || (bitRead(c, 3))
+    }*/
+  Serial.print(F("s"));
+  stopp();//motor(0, 0);
+  tur = 0;
+  dis = 3;
+}
+void brake()
+{
+  stopp();
+}
+int sori(int ch) //calculate orientation due to turns//
+{
+  return (( ori + ch) % 8);
 }
 void process_string(String instruction)
 {
@@ -282,10 +535,111 @@ void process_string(String instruction)
             T = t.toInt();
             break;
           }
+        case ('V'):
+          {
+            i++;
+            t = "";
+            while (instruction[i] != ' ')
+            {
+              t += instruction[i];
+              i++;
+            }
+            V = t.toFloat();
+            break;
+          }
       }
       i++;
     }
+    switch (G)
+    {
+      /*
 
+        ################## G commands ##################
+
+        from master to robot
+        ...
+
+        from robot to master
+
+        120 - lines present L F R N
+
+        ################################################
+
+      */
+
+      case (0): //      0 - start
+        {
+          start_flag = true;
+          break;
+        }
+      case (1): //      1 - stop
+
+        {
+          start_flag = false;
+          brake();
+          break;
+        }
+
+
+      //        8 - led on
+      case (8):
+        {
+          digitalWrite(led_pin, HIGH);
+          break;
+        }
+
+      //        9 - led off
+      case (9):
+        {
+          digitalWrite(led_pin, LOW);
+          break;
+        }
+
+
+      //      10 - line follower testing mode
+      case (10):
+        {
+          lfr_mode = true;
+          break;
+        }
+
+      //      11 - test drive motors forward with max speed
+      case (11):
+        {
+          motor(125, 125);
+          delay(2000);
+
+          motor(-125, -125);
+          delay(1000);
+        }
+
+      //      21 - delay miliseconds
+      case (21):
+        {
+          delay(V);
+          break;
+        }
+
+      //22 - delay microseconds
+      case (80):
+
+        {
+          Kp = V;
+          break;
+        }
+      //        81 - set I
+      case (81):
+        {
+          Ki = V;
+          break;
+        }
+      //        82 - set D
+      case (82):
+        {
+          Kd = V;
+          break;
+        }
+    }
   }
 
 }
@@ -293,19 +647,59 @@ void do_action()
 {
   Serial.println("Start next");
 }
+/*int digitalPinToInterrupt(int pin)
+  {
+  int intpin;
+  switch (pin)
+  {
+    case (2):
+      {
 
+
+        intpin = 0;
+        break;
+
+      }
+    case (3):
+      {
+        intpin = 1;
+        break;
+      }
+    case (21):
+      {
+        intpin = 2;
+        break;
+      }
+    case (20):
+      {
+        intpin = 3;
+        break;
+      }
+    case (19):
+      {
+        intpin = 4;
+        break;
+      }
+    case (18):
+      {
+        intpin = 5;
+        break;
+      }
+  }
+  return (intpin);
+  }*/
 void setup()
 {
-  attachInterrupt(0, spl, HIGH);
-  attachInterrupt(1, spr, HIGH);
+  attachInterrupt(digitalPinToInterrupt(dla), spl, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(dra), spr, CHANGE);
 
   Serial.begin(115200);
 
   //######################## servopins ############################
-  cam_servo.attach(9);
-  gripper_servo1.attach(6);
-  gripper_servo2.attach(3);
-  arm_servo.attach(12);
+  cam_servo.attach(8);
+  gripper_servo1.attach(11);
+  gripper_servo2.attach(10);
+  arm_servo.attach(9);
   //####################################################
   //pidcheck();
   //generate();
@@ -340,30 +734,36 @@ void setup()
     //delay(2000);
     //pidcheck();
   */
+  cam_servo.write(camservozero);
+  gripper_servo1.write(gservozero1);
+  gripper_servo2.write(gservozero2);
+  arm_servo.write(armservozero);
+}
+void setmode()
+{
+  ;
+}
+void process(String inp)
+{ Serial.print(inp);
 }
 void loop()
 {
-  //##########################################
+
+
   if (Serial.available())
   {
     sendflag = false;
     c = Serial.read();
 
     if (c == '|') {
-      line = data;
+      process(data);
       data = "";
       flag = true;
-      line += " ";
+      sendflag = true;
     }
     else {
       data += c;
     }
   }
-  //##########################################
-  if (flag)
-  {
-    process_string(line);
-    flag = false;
-    do_action();
-  }
 }
+
