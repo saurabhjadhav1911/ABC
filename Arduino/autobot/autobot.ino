@@ -91,7 +91,7 @@ float Kp = 50, Ki = 0, Kd = 10, P, I, D, sen[6] , psen[6], input, pinput, output
 boolean trial, finalr, endr = false, resetconditionsflag = 0, zeroresetconditionsflag = 0, tur = 0, bc, finals = false, speedfg = true, speedtg = true, endc = false;
 byte con, prevcon, pcon, conset, ee, kds = kdst, lspdt = 160, rspdt = 160;
 float distmean[6][4];
-unsigned long pdl, pdr, condl, condr, ddl, ddr, endd = 0;
+unsigned long pdl, pdr, condl, condr, ddl[6], ddr[6], endd = 0;
 
 
 void motor(int left, int right) //drive motor//
@@ -171,8 +171,9 @@ int limit(int in, int low, int high)
   return (in);
 }
 byte edge, sum;
-boolean conditions()
-{
+/*
+  boolean conditions()
+  {
   // sensor 0 is active low and all others are active high
   if ((sen[1] || sen[5] || ((sen[2] || sen[3] || sen[4]) == 0)) && (!conset))
   { conset = 2 - (byte)((sen[2] || sen[3] || sen[4]) == 0);
@@ -216,117 +217,121 @@ boolean conditions()
       Serial.print("\tr-m=");
       rmm = distmean[3] - distmean[2];
       Serial.print(rmm);
-      Serial.println(con, BIN);*/
-    distreach = ((dl + dr - condl - condr) > condist);
-    //Serial.print(F("dl"));
-    //Serial.print(dl);
-    //Serial.print(F("dr"));
-    //Serial.println(dr);
-    //Serial.print(F("edge"));
-    //Serial.println(edge, BIN);
-    {
-      switch (con & 0b01110000)
+      Serial.println(con, BIN);
+  distreach = ((dl + dr - condl - condr) > condist);
+  //Serial.print(F("dl"));
+  //Serial.print(dl);
+  //Serial.print(F("dr"));
+  //Serial.println(dr);
+  //Serial.print(F("edge"));
+  //Serial.println(edge, BIN);
+  {
+  switch (con & 0b01110000)
+  {
+    /*case (0b01100000)://left 3p
       {
-        /*case (0b01100000)://left 3p
+        if ( ((c & 0b01111100) == 0) && distreach) //90(sen[2] == 0) && (sen[3] == 0) && (sen[4] == 0)
+        {
+          stopp();
+          Serial.println(F("90left"));
+          //setnode();
+          //setline(true, 0b00001010);
+          turn(7);
+          return true;
+          //delay(5000);
+        }
+        /*if (((c & 0b00111000) != 0) && distreach) //90+front
           {
-            if ( ((c & 0b01111100) == 0) && distreach) //90(sen[2] == 0) && (sen[3] == 0) && (sen[4] == 0)
-            {
-              stopp();
-              Serial.println(F("90left"));
-              //setnode();
-              //setline(true, 0b00001010);
-              turn(7);
-              return true;
-              //delay(5000);
-            }
-            /*if (((c & 0b00111000) != 0) && distreach) //90+front
-              {
-              stopp();
-              Serial.println(F("90leftfront"));
-              //setnode();
-              //setline(true, 0b10001010);
-              //delay(5000);
-              //turn(turnque.dequeue());
-              return true;
-              }
-            break;
+          stopp();
+          Serial.println(F("90leftfront"));
+          //setnode();
+          //setline(true, 0b10001010);
+          //delay(5000);
+          //turn(turnque.dequeue());
+          return true;
           }
-          case (0b00110000)://right 3p
+        break;
+      }
+      case (0b00110000)://right 3p
+      {
+        if ( ((c & 0b01111100) == 0) && distreach) //90(sen[2] == 0) && (sen[3] == 0) && (sen[4] == 0)
+        {
+          stopp();
+          Serial.println(F("90right"));
+          //setnode();
+          turn(1);
+          //setline(true, 0b00101000);
+          // delay(5000);
+          return true;
+        }
+        /*if ((midst > rmm) && ((c & 0b00111000) != 0) && distreach) //90+front
           {
-            if ( ((c & 0b01111100) == 0) && distreach) //90(sen[2] == 0) && (sen[3] == 0) && (sen[4] == 0)
-            {
-              stopp();
-              Serial.println(F("90right"));
-              //setnode();
-              turn(1);
-              //setline(true, 0b00101000);
-              // delay(5000);
-              return true;
-            }
-            /*if ((midst > rmm) && ((c & 0b00111000) != 0) && distreach) //90+front
-              {
-              stopp();
-              Serial.println(F("90rightfront"));
-              //setnode();
-              //setline(true, 0b10101000);
-              //delay(5000);
-              //turn(turnque.dequeue());
-              return false;
-              }
-            break;
-          }*/
-        case (0b01110000)://both 5p
-          {
-            /*if (((c & 0b01111100) == 0b00000000) && distreach) //90+front
-              {
-              stopp();
-              Serial.println(F("leftright"));
-              //delay(5000);
-              turn(turnque.dequeue());
-              return true;
-              }
-              if (((c & 0b00111000) != 0) && distreach) //90+front
-              {*/
-            if (distreach) { ////90
-              stopp();
-              Serial3.println(F("both"));
-              //setnode();
-              ////setline(true, 0b10101010);
-              //delay(5000);
-              return true;
-            }
-            break;
+          stopp();
+          Serial.println(F("90rightfront"));
+          //setnode();
+          //setline(true, 0b10101000);
+          //delay(5000);
+          //turn(turnque.dequeue());
+          return false;
           }
-      };
+        break;
+      }
+  case (0b01110000)://both 5p
+  {
+  /*if (((c & 0b01111100) == 0b00000000) && distreach) //90+front
+    {
+    stopp();
+    Serial.println(F("leftright"));
+    //delay(5000);
+    turn(turnque.dequeue());
+    return true;
     }
-    if ((conset == 2) && ((con & 0b01010000) == 0b00000000) && ((c & 0b11111100) == 0b10000000)) {
+    if (((c & 0b00111000) != 0) && distreach) //90+front
+    {
+    if (distreach) { ////90
+    stopp();
+    Serial3.println(F("both"));
+    //setnode();
+    ////setline(true, 0b10101010);
+    //delay(5000);
+    return true;
+    }
+    break;
+    }
+    };
+    }
+  if ((conset == 2) && ((con & 0b01010000) == 0b00000000) && ((c & 0b11111100) == 0b10000000)) {
 
-      stopp();
-      Serial.println(F("back"));
-      //setnode();
-      //setline(true, 0b00001000);
-      //delay(5000);
-      turn(0);
-      return true;
-    }
-    pdl = dl;
-    pdr = dr;
+  stopp();
+  Serial.println(F("back"));
+  //setnode();
+  //setline(true, 0b00001000);
+  //delay(5000);
+  turn(0);
+  return true;
+  }
+  pdl = dl;
+  pdr = dr;
   }
   return false;
-}
-boolean conditions5()
-{
+  }* /
+  boolean conditions5()
+  {
+
   con = c | con;
   cinv = (!c & 0b11111100);
+  coninv = cinv | coninv;
   if ((con & 0b010001000) != 0)
   {
     consetsides = 1;
   }
-  
-
-}
-boolean conditions4()
-{
+  if (sen[])
+  {
+    consetcen = 1;
+  }
+  }
+  boolean conditions4()
+  {
   // sensor 0 is active low and all others are active high
 
   Serial3.println("conditions");
@@ -375,54 +380,70 @@ boolean conditions4()
     }
     Serial3.print("\t");
   }
-}
+  }
+*/
 boolean conditions2()
 {
-
   // sensor 0 is active low and all others are active high
   Serial3.println("conditions");
   if ((sen[1] || sen[5] || sen[0] || ((sen[2] || sen[3] || sen[4]) == 0)) && (!conset))
   { conset = 2 - (byte)((sen[2] || sen[3] || sen[4]) == 0);
     condl = dl;
     condr = dr;
-    lspd = lspdcon;
-    rspd = rspdcon;
     //stepmotor(1, -lspdmin, -rspdmin);
   }
 
-  if (psen[0] != sen[0])
+  if ((!psen[0]) && sen[0])
   {
     pi++;
+    ddl[pi] = dl;
+    ddr[pi] = dr;
+    Serial3.println(F("edge centerfront####################################################################"));
+    pi = limit(si, 0, 5);
 
   }
-  if (psen[1] != sen[1])
+  if ((!psen[1]) && sen[1])
   {
     qi++;
+    ddl[qi] = dl;
+    ddr[qi] = dr;
+    Serial3.println(F("edge left####################################################################"));
+    qi = limit(si, 0, 5);
+    conset = 1;
+
   }
-  if (psen[3] != sen[3])
+  if ((!psen[5]) && sen[5])
   {
     ri++;
+    ddl[ri] = dl;
+    ddr[ri] = dr;
+    Serial3.println(F("edge right####################################################################"));
+    ri = limit(si, 0, 5);
+    conset = 1;
+
   }
-  if (psen[2] != sen[2])
+  if ((!psen[3]) && sen[0])
   {
     si++;
+    ddl[si] = dl;
+    ddr[si] = dr;
+    Serial3.println(F("edge center####################################################################"));
+    si = limit(si, 0, 5);
   }
+  mean[pi][0][0] += (ddl[pi] + ddr[pi]) * (1 - sen[0]);
+  mean[qi][1][0] += 2 * ddl[qi] * (sen[1]);
+  mean[ri][3][0] += 2 * ddr[ri] * (sen[5]);
+  mean[si][2][0] += (ddr[si] + ddl[si]) * (1 - sen[3]);
 
-  mean[pi][0][0] += (ddl + ddr) * (sen[0] - 0.5);
-  mean[qi][1][0] += 2 * ddl * (sen[1] - 0.5);
-  mean[ri][3][0] += 2 * ddr * (sen[5] - 0.5);
-  mean[si][2][0] += (ddr + ddl) * (sen[3] - 0.5);
-
-  mean[pi][0][1] += (sen[0]);
+  mean[pi][0][1] += (1 - sen[0]);
   mean[qi][1][1] += (sen[1]);
   mean[ri][3][1] += (sen[5]);
-  mean[si][2][1] += (sen[3]);
+  mean[si][2][1] += (1 - sen[3]);
   con = 0;
   for (int j = 0; j < 6; j++)
   {
     for (int i = 0; i < 4; i++)
     {
-
       bitWrite(con, 7 - i, (mean[j][i][1] != 0));
       distmean[j][i] = (float)mean[j][i][0] / mean[j][i][1];
       Serial3.print(distmean[j][i]);
@@ -451,136 +472,136 @@ boolean conditions2()
   Serial3.print(F("dr"));
   Serial3.println(dr);
   /*
-    if ((dl + dr) > 144)
+  if ((dl + dr) > 144)
+  {
+  switch (con & 0b01110000)
+  {
+  case (0b01100000 )://left 3p
     {
-    switch (con & 0b01110000)
+    if ((midst > lmm) && ((c & 0b00111000) == 0) && distreach) //90(sen[2] == 0) && (sen[3] == 0) && (sen[4] == 0)
     {
-    case (0b01100000 )://left 3p
-      {
-      if ((midst > lmm) && ((c & 0b00111000) == 0) && distreach) //90(sen[2] == 0) && (sen[3] == 0) && (sen[4] == 0)
-      {
-        stopp();
-        Serial3.println(F("90left"));
-        setnode();
-        setline(true, 0b00001010);
-        return true;
-        //delay(5000);
-      }
-      if ((midst < lmm) && ((c & 0b00111000) == 0)) //45
-      {
-        stopp();
-        setnode();
-        Serial3.println(F("45left"));
-        setline(true, 0b00001001);
-        //delay(5000);
-        return true;
-      }
-      if (((midst > lmm) && (c & 0b00111000) != 0) && distreach) //90+front
-      {
-        stopp();
-        Serial3.println(F("90lefttfront"));
-        setnode();
-        setline(true, 0b10001010);
-        //delay(5000);
-        return true;
-      }
-      break;
-      }
-    case (0b00110000 )://right 3p
-      {
-      if ((midst > rmm) && ((c & 0b00111000) == 0) && distreach) //90(sen[2] == 0) && (sen[3] == 0) && (sen[4] == 0)
-      {
-
-        stopp();
-        Serial3.println(F("90right"));
-        setnode();
-        setline(true, 0b00101000);
-        // delay(5000);
-        return true;
-      }
-      if ((midst < rmm) && ((c & 0b00111000) == 0)) //45
-      {
-
-        stopp();
-        Serial3.println(F("45right"));
-        setnode();
-        setline(true, 0b01001000);
-        //delay(5000);
-        return true;
-      }
-      if ((midst > rmm) && ((c & 0b00111000) != 0) && distreach) //90+front
-      {
-
-        stopp();
-        Serial3.println(F("90rightfront"));
-        setnode();
-        setline(true, 0b10101000);
-        //delay(5000);
-        return true;
-      }
-      break;
-
-      }
-    case (0b01110000 )://both 5p
-      {
-      if ((midst < rmm) && (midst < lmm) && ((c & 0b00111000) == 0)) //45
-      {
-        stopp();
-        Serial3.println(F("Ycom"));
-        setnode();
-        setline(true, 0b01001001);
-        //delay(5000);
-        return true;
-      }
-      if ((midst < rmm) && (midst > lmm) && ((c & 0b00111000) == 0)) //45
-      {
-        stopp();
-        Serial3.println(F("45R 90L"));
-        setnode();
-        setline(true, 0b01001010);
-        //delay(5000);
-        return true;
-      }
-      if ((midst > rmm) && (midst < lmm) && ((c & 0b00111000) == 0)) //45
-      {
-        stopp();
-        Serial3.println(F("45L 90R"));
-        setnode();
-        setline(true, 0b00101001);
-        //delay(5000);
-        return true;
-      }
-      if ((midst > rmm) && (midst > lmm) && ((c & 0b01111100) == 0b00000000) && distreach) //90+front
-      {
-        stopp();
-        Serial3.println(F("leftright"));
-        setnode();
-        setline(true, 0b00101010);
-        //delay(5000);
-        return true;
-      }
-      if ((midst > rmm) && (midst > lmm) && ((c & 0b00111000) != 0) && distreach) //90+front
-      {
-        stopp();
-        Serial3.println(F("leftrightfront"));
-        setnode();
-        setline(true, 0b10101010);
-        //delay(5000);
-        return true;
-      }
-      break;
-      }
-    };
+      stopp();
+      Serial3.println(F("90left"));
+      setnode();
+      setline(true, 0b00001010);
+      return true;
+      //delay(5000);
     }
-    if ((conset == 2) && ((con & 0b01010000) == 0b00000000) && ((c & 0b11111100) == 0b10000000)) {
+    if ((midst < lmm) && ((c & 0b00111000) == 0)) //45
+    {
+      stopp();
+      setnode();
+      Serial3.println(F("45left"));
+      setline(true, 0b00001001);
+      //delay(5000);
+      return true;
+    }
+    if (((midst > lmm) && (c & 0b00111000) != 0) && distreach) //90+front
+    {
+      stopp();
+      Serial3.println(F("90lefttfront"));
+      setnode();
+      setline(true, 0b10001010);
+      //delay(5000);
+      return true;
+    }
+    break;
+    }
+  case (0b00110000 )://right 3p
+    {
+    if ((midst > rmm) && ((c & 0b00111000) == 0) && distreach) //90(sen[2] == 0) && (sen[3] == 0) && (sen[4] == 0)
+    {
 
-    stopp();
-    Serial3.println(F("back"));
-    setnode();
-    setline(true, 0b00001000);
-    //delay(5000);
-    return true;
-    }*/
+      stopp();
+      Serial3.println(F("90right"));
+      setnode();
+      setline(true, 0b00101000);
+      // delay(5000);
+      return true;
+    }
+    if ((midst < rmm) && ((c & 0b00111000) == 0)) //45
+    {
+
+      stopp();
+      Serial3.println(F("45right"));
+      setnode();
+      setline(true, 0b01001000);
+      //delay(5000);
+      return true;
+    }
+    if ((midst > rmm) && ((c & 0b00111000) != 0) && distreach) //90+front
+    {
+
+      stopp();
+      Serial3.println(F("90rightfront"));
+      setnode();
+      setline(true, 0b10101000);
+      //delay(5000);
+      return true;
+    }
+    break;
+
+    }
+  case (0b01110000 )://both 5p
+    {
+    if ((midst < rmm) && (midst < lmm) && ((c & 0b00111000) == 0)) //45
+    {
+      stopp();
+      Serial3.println(F("Ycom"));
+      setnode();
+      setline(true, 0b01001001);
+      //delay(5000);
+      return true;
+    }
+    if ((midst < rmm) && (midst > lmm) && ((c & 0b00111000) == 0)) //45
+    {
+      stopp();
+      Serial3.println(F("45R 90L"));
+      setnode();
+      setline(true, 0b01001010);
+      //delay(5000);
+      return true;
+    }
+    if ((midst > rmm) && (midst < lmm) && ((c & 0b00111000) == 0)) //45
+    {
+      stopp();
+      Serial3.println(F("45L 90R"));
+      setnode();
+      setline(true, 0b00101001);
+      //delay(5000);
+      return true;
+    }
+    if ((midst > rmm) && (midst > lmm) && ((c & 0b01111100) == 0b00000000) && distreach) //90+front
+    {
+      stopp();
+      Serial3.println(F("leftright"));
+      setnode();
+      setline(true, 0b00101010);
+      //delay(5000);
+      return true;
+    }
+    if ((midst > rmm) && (midst > lmm) && ((c & 0b00111000) != 0) && distreach) //90+front
+    {
+      stopp();
+      Serial3.println(F("leftrightfront"));
+      setnode();
+      setline(true, 0b10101010);
+      //delay(5000);
+      return true;
+    }
+    break;
+    }
+  };
+  }
+  if ((conset == 2) && ((con & 0b01010000) == 0b00000000) && ((c & 0b11111100) == 0b10000000)) {
+
+  stopp();
+  Serial3.println(F("back"));
+  setnode();
+  setline(true, 0b00001000);
+  //delay(5000);
+  return true;
+  }*/
 /*
   pdl = dl;
   pdr = dr;
@@ -1248,7 +1269,7 @@ void mode_based_operation_loop()
 
         //Serial3.println("sensed");
         Serial3.println(c, BIN);
-        boolean k = conditions();
+        boolean k = conditions2();
         Serial3.println();
         if (c == 0)
         {
