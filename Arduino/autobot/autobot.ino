@@ -87,11 +87,10 @@ int nx, ny, ul, ur, ts[6], sm, endX = 5, endY = 2, startX = 3 , startY = 6 , add
 byte ori, co, currx, curry, minvalue, xn, ym, oi, rspd = 255, lspd = 255, lspdprev, rspdprev, rsp, lsp;
 unsigned long int rr, ll, dr, dl, prevdist, d;
 
-float Kp = 50, Ki = 0, Kd = 10, P, I, D, sen[6] , input, pinput, output, l, r, rad, krad, turnsen, dis = 3,  dino = 0.0, turndino = 0.0;
+float Kp = 50, Ki = 0, Kd = 10, P, I, D, sen[6] , psen[6], input, pinput, output, l, r, rad, krad, turnsen, dis = 3,  dino = 0.0, turndino = 0.0;
 boolean trial, finalr, endr = false, resetconditionsflag = 0, zeroresetconditionsflag = 0, tur = 0, bc, finals = false, speedfg = true, speedtg = true, endc = false;
 byte con, prevcon, pcon, conset, ee, kds = kdst, lspdt = 160, rspdt = 160;
-long mean[4][2];
-float distmean[4];
+float distmean[6][4];
 unsigned long pdl, pdr, condl, condr, ddl, ddr, endd = 0;
 
 
@@ -146,7 +145,6 @@ void rm(int rsp)//
     analogWrite(sr, -rsp);
   }
 }
-
 void stepmotor(int steps, int left, int right)
 {
   for (int z = 0; z < steps; z++)
@@ -164,7 +162,432 @@ void stepmotor(int steps, int left, int right)
     while (ur || ul);
   }
 }
+double mean[6][4][2];
+int pi, qi, ri, si;
+int limit(int in, int low, int high)
+{
+  if (in < low) return (low);
+  if (in > high) return (high);
+  return (in);
+}
+byte edge, sum;
+boolean conditions()
+{
+  // sensor 0 is active low and all others are active high
+  if ((sen[1] || sen[5] || ((sen[2] || sen[3] || sen[4]) == 0)) && (!conset))
+  { conset = 2 - (byte)((sen[2] || sen[3] || sen[4]) == 0);
+    stopp();
+    condl = dl;
+    condr = dr;
+    lspd = lspdcon;
+    rspd = rspdcon;
 
+    Serial3.print(dl);
+    Serial3.print("\t");
+    Serial3.print(dr);
+    Serial3.print("\t");
+    //stepmotor(1, -lspdmin, -rspdmin);
+  }
+  edge = edge ^ c;
+  sum |= (c & 0b11111100);
+  if ((conset))// && ((dl != pdl) || (dr != pdr)))
+  {
+    mean[0][1] += (sen[0]);
+    mean[1][1] += (sen[1]);
+    mean[3][1] += (sen[5]);
+    mean[2][1] += (sen[3]);
+    con = 0;
+    for (int i = 0; i < 4; i++)
+    {
+      bitWrite(con, 7 - i, (mean[i][1] != 0));
+      distmean[i] = (float)mean[i][0] / mean[i][1];
+      //Serial.print(distmean[i]);
+      //Serial.print("\t");
+    }
+    /*Serial.print("u-l=");
+      uml = distmean[0] - distmean[1];
+      Serial.print(uml);
+      Serial.print("\tu-r=");
+      umr = distmean[0] - distmean[3];
+      Serial.print(umr);
+      Serial.print("\tl-m=");
+      lmm = distmean[1] - distmean[2];
+      Serial.print(lmm);
+      Serial.print("\tr-m=");
+      rmm = distmean[3] - distmean[2];
+      Serial.print(rmm);
+      Serial.println(con, BIN);*/
+    distreach = ((dl + dr - condl - condr) > condist);
+    //Serial.print(F("dl"));
+    //Serial.print(dl);
+    //Serial.print(F("dr"));
+    //Serial.println(dr);
+    //Serial.print(F("edge"));
+    //Serial.println(edge, BIN);
+    {
+      switch (con & 0b01110000)
+      {
+        /*case (0b01100000)://left 3p
+          {
+            if ( ((c & 0b01111100) == 0) && distreach) //90(sen[2] == 0) && (sen[3] == 0) && (sen[4] == 0)
+            {
+              stopp();
+              Serial.println(F("90left"));
+              //setnode();
+              //setline(true, 0b00001010);
+              turn(7);
+              return true;
+              //delay(5000);
+            }
+            /*if (((c & 0b00111000) != 0) && distreach) //90+front
+              {
+              stopp();
+              Serial.println(F("90leftfront"));
+              //setnode();
+              //setline(true, 0b10001010);
+              //delay(5000);
+              //turn(turnque.dequeue());
+              return true;
+              }
+            break;
+          }
+          case (0b00110000)://right 3p
+          {
+            if ( ((c & 0b01111100) == 0) && distreach) //90(sen[2] == 0) && (sen[3] == 0) && (sen[4] == 0)
+            {
+              stopp();
+              Serial.println(F("90right"));
+              //setnode();
+              turn(1);
+              //setline(true, 0b00101000);
+              // delay(5000);
+              return true;
+            }
+            /*if ((midst > rmm) && ((c & 0b00111000) != 0) && distreach) //90+front
+              {
+              stopp();
+              Serial.println(F("90rightfront"));
+              //setnode();
+              //setline(true, 0b10101000);
+              //delay(5000);
+              //turn(turnque.dequeue());
+              return false;
+              }
+            break;
+          }*/
+        case (0b01110000)://both 5p
+          {
+            /*if (((c & 0b01111100) == 0b00000000) && distreach) //90+front
+              {
+              stopp();
+              Serial.println(F("leftright"));
+              //delay(5000);
+              turn(turnque.dequeue());
+              return true;
+              }
+              if (((c & 0b00111000) != 0) && distreach) //90+front
+              {*/
+            if (distreach) { ////90
+              stopp();
+              Serial3.println(F("both"));
+              //setnode();
+              ////setline(true, 0b10101010);
+              //delay(5000);
+              return true;
+            }
+            break;
+          }
+      };
+    }
+    if ((conset == 2) && ((con & 0b01010000) == 0b00000000) && ((c & 0b11111100) == 0b10000000)) {
+
+      stopp();
+      Serial.println(F("back"));
+      //setnode();
+      //setline(true, 0b00001000);
+      //delay(5000);
+      turn(0);
+      return true;
+    }
+    pdl = dl;
+    pdr = dr;
+  }
+  return false;
+}
+boolean conditions5()
+{
+  con = c | con;
+  cinv = (!c & 0b11111100);
+  if ((con & 0b010001000) != 0)
+  {
+    consetsides = 1;
+  }
+  
+
+}
+boolean conditions4()
+{
+  // sensor 0 is active low and all others are active high
+
+  Serial3.println("conditions");
+  ddl = dl - condl;
+  ddr = dr - condr;
+  if (psen[0] != sen[0])
+  {
+    pi++;
+    pi = limit(pi, 0, 5);
+  }
+  if (psen[1] != sen[1])
+  {
+    qi++;
+    qi = limit(qi, 0, 5);
+  }
+  if (psen[3] != sen[3])
+  {
+    ri++;
+    ri = limit(ri, 0, 5);
+  }
+  if (psen[2] != sen[2])
+  {
+    si++;
+    si = limit(si, 0, 5);
+  }
+
+  mean[pi][0][0] += (ddl + ddr) * (sen[0] - 0.5);
+  mean[qi][1][0] += 2 * ddl * (sen[1] - 0.5);
+  mean[ri][3][0] += 2 * ddr * (sen[5] - 0.5);
+  mean[si][2][0] += (ddr + ddl) * (sen[3] - 0.5);
+
+  mean[pi][0][1] += (sen[0] - 0.5);
+  mean[qi][1][1] += (sen[1] - 0.5);
+  mean[ri][3][1] += (sen[5] - 0.5);
+  mean[si][2][1] += (sen[3] - 0.5);
+  con = 0;
+
+  for (int j = 0; j < 6; j++)
+  {
+    for (int i = 1; i < 4; i++)
+    {
+      bitWrite(con, 7 - i, (mean[j][i][1] != 0));
+      distmean[j][i] = (float)mean[j][i][0] / mean[j][i][1];
+      Serial3.print(distmean[j][i]);
+      Serial3.print("|");
+    }
+    Serial3.print("\t");
+  }
+}
+boolean conditions2()
+{
+
+  // sensor 0 is active low and all others are active high
+  Serial3.println("conditions");
+  if ((sen[1] || sen[5] || sen[0] || ((sen[2] || sen[3] || sen[4]) == 0)) && (!conset))
+  { conset = 2 - (byte)((sen[2] || sen[3] || sen[4]) == 0);
+    condl = dl;
+    condr = dr;
+    lspd = lspdcon;
+    rspd = rspdcon;
+    //stepmotor(1, -lspdmin, -rspdmin);
+  }
+
+  if (psen[0] != sen[0])
+  {
+    pi++;
+
+  }
+  if (psen[1] != sen[1])
+  {
+    qi++;
+  }
+  if (psen[3] != sen[3])
+  {
+    ri++;
+  }
+  if (psen[2] != sen[2])
+  {
+    si++;
+  }
+
+  mean[pi][0][0] += (ddl + ddr) * (sen[0] - 0.5);
+  mean[qi][1][0] += 2 * ddl * (sen[1] - 0.5);
+  mean[ri][3][0] += 2 * ddr * (sen[5] - 0.5);
+  mean[si][2][0] += (ddr + ddl) * (sen[3] - 0.5);
+
+  mean[pi][0][1] += (sen[0]);
+  mean[qi][1][1] += (sen[1]);
+  mean[ri][3][1] += (sen[5]);
+  mean[si][2][1] += (sen[3]);
+  con = 0;
+  for (int j = 0; j < 6; j++)
+  {
+    for (int i = 0; i < 4; i++)
+    {
+
+      bitWrite(con, 7 - i, (mean[j][i][1] != 0));
+      distmean[j][i] = (float)mean[j][i][0] / mean[j][i][1];
+      Serial3.print(distmean[j][i]);
+      Serial3.print(" ");
+    }
+    Serial3.print("    ");
+  }
+}
+/*
+  Serial3.print("u-l=");
+  uml = distmean[0] - distmean[1];
+  Serial3.print(uml);
+  Serial3.print("\tu-r=");
+  umr = distmean[0] - distmean[3];
+  Serial3.print(umr);
+  Serial3.print("\tl-m=");
+  lmm = distmean[1] - distmean[2];
+  Serial3.print(lmm);
+  Serial3.print("\tr-m=");
+  rmm = distmean[3] - distmean[2];
+  Serial3.print(rmm);
+  Serial3.println(con, BIN);
+  distreach = ((dl + dr - condl - condr) > condist);
+  Serial3.print(F("dl"));
+  Serial3.print(dl);
+  Serial3.print(F("dr"));
+  Serial3.println(dr);
+  /*
+    if ((dl + dr) > 144)
+    {
+    switch (con & 0b01110000)
+    {
+    case (0b01100000 )://left 3p
+      {
+      if ((midst > lmm) && ((c & 0b00111000) == 0) && distreach) //90(sen[2] == 0) && (sen[3] == 0) && (sen[4] == 0)
+      {
+        stopp();
+        Serial3.println(F("90left"));
+        setnode();
+        setline(true, 0b00001010);
+        return true;
+        //delay(5000);
+      }
+      if ((midst < lmm) && ((c & 0b00111000) == 0)) //45
+      {
+        stopp();
+        setnode();
+        Serial3.println(F("45left"));
+        setline(true, 0b00001001);
+        //delay(5000);
+        return true;
+      }
+      if (((midst > lmm) && (c & 0b00111000) != 0) && distreach) //90+front
+      {
+        stopp();
+        Serial3.println(F("90lefttfront"));
+        setnode();
+        setline(true, 0b10001010);
+        //delay(5000);
+        return true;
+      }
+      break;
+      }
+    case (0b00110000 )://right 3p
+      {
+      if ((midst > rmm) && ((c & 0b00111000) == 0) && distreach) //90(sen[2] == 0) && (sen[3] == 0) && (sen[4] == 0)
+      {
+
+        stopp();
+        Serial3.println(F("90right"));
+        setnode();
+        setline(true, 0b00101000);
+        // delay(5000);
+        return true;
+      }
+      if ((midst < rmm) && ((c & 0b00111000) == 0)) //45
+      {
+
+        stopp();
+        Serial3.println(F("45right"));
+        setnode();
+        setline(true, 0b01001000);
+        //delay(5000);
+        return true;
+      }
+      if ((midst > rmm) && ((c & 0b00111000) != 0) && distreach) //90+front
+      {
+
+        stopp();
+        Serial3.println(F("90rightfront"));
+        setnode();
+        setline(true, 0b10101000);
+        //delay(5000);
+        return true;
+      }
+      break;
+
+      }
+    case (0b01110000 )://both 5p
+      {
+      if ((midst < rmm) && (midst < lmm) && ((c & 0b00111000) == 0)) //45
+      {
+        stopp();
+        Serial3.println(F("Ycom"));
+        setnode();
+        setline(true, 0b01001001);
+        //delay(5000);
+        return true;
+      }
+      if ((midst < rmm) && (midst > lmm) && ((c & 0b00111000) == 0)) //45
+      {
+        stopp();
+        Serial3.println(F("45R 90L"));
+        setnode();
+        setline(true, 0b01001010);
+        //delay(5000);
+        return true;
+      }
+      if ((midst > rmm) && (midst < lmm) && ((c & 0b00111000) == 0)) //45
+      {
+        stopp();
+        Serial3.println(F("45L 90R"));
+        setnode();
+        setline(true, 0b00101001);
+        //delay(5000);
+        return true;
+      }
+      if ((midst > rmm) && (midst > lmm) && ((c & 0b01111100) == 0b00000000) && distreach) //90+front
+      {
+        stopp();
+        Serial3.println(F("leftright"));
+        setnode();
+        setline(true, 0b00101010);
+        //delay(5000);
+        return true;
+      }
+      if ((midst > rmm) && (midst > lmm) && ((c & 0b00111000) != 0) && distreach) //90+front
+      {
+        stopp();
+        Serial3.println(F("leftrightfront"));
+        setnode();
+        setline(true, 0b10101010);
+        //delay(5000);
+        return true;
+      }
+      break;
+      }
+    };
+    }
+    if ((conset == 2) && ((con & 0b01010000) == 0b00000000) && ((c & 0b11111100) == 0b10000000)) {
+
+    stopp();
+    Serial3.println(F("back"));
+    setnode();
+    setline(true, 0b00001000);
+    //delay(5000);
+    return true;
+    }*/
+/*
+  pdl = dl;
+  pdr = dr;
+  }
+  return false;
+  }
+  return false;*/
 void leftstepmotor(int stepsl, int leftm)
 {
   for (int z = 0; z < stepsl; z++)
@@ -434,11 +857,14 @@ void turn(byte tu) //turning at node
   dis = 3;
 }
 void gen()
-{ dino = (sen[2] + sen[3] + sen[4]);
+{
+  //Serial3.println("inside gen");
+  dino = (sen[2] + sen[3] + sen[4]);
+
   if (dino != 0) {
     input = (((sen[2] + 2 * sen[3] + 3 * sen[4]) / dino) - 2);
-    Serial.print("input");
-    Serial.println(input);
+    //Serial3.print("input");
+    //Serial3.println(input);
   }
   P = Kp * input;
   I += Ki * input;
@@ -488,11 +914,13 @@ int sori(int ch) //calculate orientation due to turns//
 void process_string(String instruction)
 {
   int i = 0;
-  instruction += " ";
+  instruction += ' ';
+  //Serial3.print("inside process string");
+  //Serial3.println(instruction);
   if (instruction[i] != '(') {
     while (i < instruction.length())
     {
-
+      //Serial.println("gda");
       switch (instruction[i])
       {
         case ('G'):
@@ -529,7 +957,6 @@ void process_string(String instruction)
               i++;
             }
             R = t.toInt();
-            drive_motors(L, R);
             break;
           }
         case ('C'):
@@ -589,6 +1016,7 @@ void process_string(String instruction)
             t = "";
             while (instruction[i] != ' ')
             {
+              Serial3.println("ivr");
               t += instruction[i];
               i++;
             }
@@ -598,6 +1026,8 @@ void process_string(String instruction)
       }
       i++;
     }
+    //Serial3.print("read string");
+    //Serial3.println(G);
     switch (G)
     {
       /*
@@ -614,7 +1044,6 @@ void process_string(String instruction)
         ################################################
 
       */
-
       case (0): //      0 - start
         {
           start_flag = true;
@@ -627,8 +1056,6 @@ void process_string(String instruction)
           brake();
           break;
         }
-
-
       //        8 - led on
       case (8):
         {
@@ -648,7 +1075,9 @@ void process_string(String instruction)
       case (10):
         {
           mode = lfr_mode;
-          Serial3.println("lfrmode");
+
+          //Serial3.print("lfrmode");
+          //Serial3.println(mode);
           break;
         }
 
@@ -670,28 +1099,38 @@ void process_string(String instruction)
           break;
         }
       //22 - delay microseconds
+
+      case (70):
+
+        {
+          lspd = L;
+          rspd = R;
+          lspdprev = L;
+          rspdprev = R;
+          break;
+        }
       case (80):
 
         {
           Kp = V;
-          Serial3.print("P=");
-          Serial3.println(Kp);
+          //Serial3.print("P=");
+          //Serial3.println(Kp);
           break;
         }
       //        81 - set I
       case (81):
         {
           Ki = V;
-          Serial3.print("I=");
-          Serial3.println(Ki);
+          //Serial3.print("I=");
+          //Serial3.println(Ki);
           break;
         }
       //        82 - set D
       case (82):
         {
           Kd = V;
-          Serial3.print("D=");
-          Serial3.println(Kd);
+          //Serial3.print("D=");
+          //Serial3.println(Kd);
           break;
         }
     }
@@ -788,34 +1227,43 @@ void setup()
     //motor(lspd, rspd);
     //delay(2000);
     //pidcheck();
-  
-  cam_servo.write(camservozero);
-  gripper_servo1.write(gservozero1);
-  gripper_servo2.write(gservozero2);
-  arm_servo.write(armservozero);*/
+
+    cam_servo.write(camservozero);
+    gripper_servo1.write(gservozero1);
+    gripper_servo2.write(gservozero2);
+    arm_servo.write(armservozero);*/
 }
 void mode_based_operation_loop()
 {
+  Serial3.println("inside mode based o l");
   switch (mode)
   {
     case (lfr_mode):
       {
+        for (int i; i < 6; i++)
+        {
+          psen[i] = sen[i];
+        }
         sense();
-        Serial1.println("sensed");
+
+        //Serial3.println("sensed");
+        Serial3.println(c, BIN);
+        boolean k = conditions();
+        Serial3.println();
         if (c == 0)
         {
-          lspdprev = lspd;
-          rspdprev = rspd;
           lspd = 0;
           rspd = 0;
         }
+        else
         {
           lspd = lspdprev;
           rspd = rspdprev;
         }
+        gen();
+        break;
       }
-      gen();
-      break;
+
   }
 }
 
@@ -831,14 +1279,20 @@ void loop()
 {
   if (Serial.available() > 0)
   {
-    c = Serial.read();
-    if (c == '|') {
+    cc = Serial.read();
+    if (cc == '|') {
       process_string(data);
+      //responce(data);
       data = "";
     }
     else {
-      data += c;
+      data += cc;
     }
   }
   mode_based_operation_loop();
+  Serial3.println("looped");
+  /*Serial3.print("dl");
+    Serial3.print(dl);
+    Serial3.print("dr");
+    Serial3.println(dr);*/
 }

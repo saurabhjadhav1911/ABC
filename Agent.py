@@ -10,6 +10,7 @@ import Env
 import Cam
 import sys
 import os
+import json
 import traceback
 
 
@@ -20,7 +21,7 @@ class Agent():
         self.mode=mode # "trial"
         print('Agent created')
         self.ser=self.get_Serial()
-        time.sleep(1)
+        time.sleep(3)
         self.timeout=config['Serial_config']['custom_timeout']
         print('Serial started')
         self.data=""
@@ -97,7 +98,10 @@ class Agent():
     def load_background(self):
         return cv2.imread('back.jpg')
 
-    def save_config(self,config):
+    def save_config(self):
+        s=json.dumps(self.config)
+        with open("config.json","w") as f:
+            f.write(s)
         pass
 
     """
@@ -269,6 +273,7 @@ class Agent():
                     
             elif(data[0]=='s'):
                 self.parameters[self.mode]['P'],self.parameters[self.mode]['P'],self.parameters[self.mode]['P']=self.P,self.I,self.D
+                self.save_config()
                 
             self.setPID(self.P,self.I,self.D)
             self.setSpeeds(self.L,self.R)
