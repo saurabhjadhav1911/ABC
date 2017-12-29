@@ -105,17 +105,12 @@ class Agent():
         pass
 
     """
-
     ################## G commands ##################
-
     from master to robot 
-
     0 - start
     1 - stop
-
     8 - led on
     9 - led off
-
     10 - line follower testing mode
     11 - test drive motors forward with max speed
     
@@ -123,19 +118,15 @@ class Agent():
     22 - delay miliseconds
     
     30 - Turn command
-
+    32 - stepmotor
     40 - color inversion flag
     
     70 - set speeds
-
     80 - set P
     81 - set I
     82 - set D
-
     from robot to master
-
     120 - lines present L F R N
-
     ################################################
     """
     
