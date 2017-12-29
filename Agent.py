@@ -125,8 +125,9 @@ class Agent():
     80 - set P
     81 - set I
     82 - set D
+    
     from robot to master
-    120 - lines present L F R N
+    120 - lines present L F R N I
     ################################################
     """
     
@@ -150,13 +151,20 @@ class Agent():
                 
                 self.parameters['NODE'].append(self.pos)
                 
-            else:
-                if 'L' in values:
-                    self.setLine(self.pos,self.global_orientation(self.orientation,-1,1))
-                if 'F' in values:
-                    self.setLine(self.pos,self.global_orientation(self.orientation,0,1))
-                if 'R' in values:
-                    self.setLine(self.pos,self.global_orientation(self.orientation,1,1))
+            if 'I' in values:
+                self.setLine(self.pos,self.global_orientation(self.orientation,-1,1))
+                self.setLine(self.pos,self.global_orientation(self.orientation,0,1))
+                self.setLine(self.pos,self.global_orientation(self.orientation,1,1))
+                self.setLine(self.pos,self.global_orientation(self.orientation,2,1))
+                
+                self.parameters['INV'].append(self.pos)
+            
+            if 'L' in values:
+                self.setLine(self.pos,self.global_orientation(self.orientation,-1,1))
+            if 'F' in values:
+                self.setLine(self.pos,self.global_orientation(self.orientation,0,1))
+            if 'R' in values:
+                self.setLine(self.pos,self.global_orientation(self.orientation,1,1))
 
         elif G==121:
             pass
@@ -164,11 +172,10 @@ class Agent():
 
     def trial_run(self):
         #start
-        self.action("G00")
-
         self.action("G8")#led on
-
+        
         self.action("G21 V{}".format(1000))#delay
+        self.responce()
 
         self.action("G9")#led off
         
@@ -281,7 +288,8 @@ class Agent():
         
         self.L,self.R=self.parameters[self.mode]["max_speed_L"],self.parameters[self.mode]["max_speed_R"] ## max sppeds of motors
         self.P,self.I,self.D=self.parameters[self.mode]["P"],self.parameters[self.mode]["I"],self.parameters[self.mode]["D"] # set default PID
-        self.tunePID()
+        print(self.responce())
+        self.render()
     def action(self,arr):
         print(arr)
         arr+="|"
@@ -475,9 +483,8 @@ def Main():
     #initialise communicatoions between processes
     send_que=multiprocessing.Queue()
     recieve_que=multiprocessing.Queue()
-
+    agent.render()
     agent.run(send_que,recieve_que)
-
 
 if __name__ == '__main__':
     Main()

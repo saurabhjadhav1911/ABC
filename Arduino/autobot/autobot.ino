@@ -42,7 +42,11 @@
 #define dra 20
 #define drb 21
 #define led_pin 13
+#define switch_pin 12
+
+
 #define lfr_mode 10
+#define lfr_mode 12
 #define sensor_mode 8
 #define NODE 9
 #define INV 10
@@ -211,14 +215,6 @@ boolean conditions2()
 {
   // sensor 0 is active low and all others are active high
   Serial3.println("conditions");
-  if ((psen[0]) && (!sen[0]))
-  {
-    pi++;
-    ddl[pi] = dl;
-    ddr[pi] = dr;
-    Serial3.println(F("edge centerfront####################################################################"));
-    pi = limit(pi, 0, 5);
-  }
   if ((!psen[1]) && sen[1])
   {
     qi++;
@@ -237,19 +233,18 @@ boolean conditions2()
     Serial3.println(F("edge right####################################################################"));
     ri = limit(ri, 0, 5);
     condr = dr;
-    conset = 1;
+    conset = 1;//conset
   }
   if (((!(sen[2] && sen[3] && sen[4])) && sen[1] && sen[5]) & (!cnode))
   {
-    cn += 1;
+    cn += 1;//conset = 1;//conset
     if (cn > 1)
     {
       con = INV;
       Serial3.println(F("INV ####################################################################"));
-
     }
-    cnode = 1;
-    cnodeg += 1;
+    cnode = 1;//cn += 1;//conset = 1;//conset
+    cnodeg += 1;//cnode = 1;//cn += 1;//conset = 1;//conset
     si++;
     ddl[si] = dl;
     ddr[si] = dr;
@@ -257,17 +252,17 @@ boolean conditions2()
   }
   if ((((sen[2] || sen[3] || sen[4])) && (!sen[1]) && (!sen[5])) & (!cnnode)  & cnode)
   {
-    cn += 1;
+    cn += 1;//cnodeg += 1;//cnode = 1;//cn += 1;//conset = 1;//conset
     Serial3.println(F("edge node ---- ####################################################################"));
-    cnnode = 1;
-    cnode -= 1;
+    cnnode = 1;//cn += 1;//cnodeg += 1;//cnode = 1;//cn += 1;//conset = 1;//conset
+    cnode -= 1;//cnnode = 1;//cn += 1;//cnodeg += 1;//cnode = 1;//cn += 1;//conset = 1;//conset
     conndl = dl;
     conndr = dr;
   }
   if (((dl + dr - conndl - conndr) > 130)&cnnode)
   {
     Serial3.println(F("NODE ####################################################################"));
-    con = NODE;
+    con = NODE;//cnode -= 1;//cnnode = 1;//cn += 1;//cnodeg += 1;//cnode = 1;//cn += 1;//conset = 1;//conset
   }
   if (((dl + dr - condl - condr) > 130) & (!cnnode)&conset)
   {
@@ -283,13 +278,13 @@ boolean conditions2()
   mean[qi][1][1] += (sen[1]);
   mean[ri][3][1] += (sen[5]);
   mean[si][2][1] += (cnode);
-  con = 0;
+
 
   for (int j = 0; j < 6; j++)
   {
     for (int i = 0; i < 4; i++)
     {
-      bitWrite(con, 7 - i, (mean[j][i][1] != 0));
+
       distmean[j][i] = (float)mean[j][i][0] / mean[j][i][1];
       Serial3.print(distmean[j][i]);
       Serial3.print(" ");
@@ -304,6 +299,11 @@ void resetconditions()
   cnodeg = 0;
   con = 0;
   conset = 0;
+  cn = 0;
+  pi = 0;
+  qi = 0;
+  ri = 0;
+  si = 0;
 }
 /*
   Serial3.print("u-l=");
@@ -691,8 +691,8 @@ void gen()
 
   if (dino != 0) {
     input = (((sen[2] + 2 * sen[3] + 3 * sen[4]) / dino) - 2);
-    //Serial3.print("input");
-    //Serial3.println(input);
+    Serial3.print("input");
+    Serial3.println(input);
   }
   P = Kp * input;
   I += Ki * input;
@@ -705,8 +705,7 @@ void gen()
   if (output >= 0)
   {
     sm = rspd - (int)rad;
-    lm(lspd);
-    rm(sm);
+    motor(lspd, sm);
     //delay(1);
     /*Serial.print("\t left motor=");
       Serial.print(lspd);
@@ -719,8 +718,7 @@ void gen()
 
     sm = lspd - (int)rad;
 
-    lm(sm);
-    rm(rspd);
+    motor(sm, rspd);
     //delay(1);
     /* Serial.print("\t left motor=");
       Serial.print(sm);
@@ -1125,6 +1123,7 @@ void setup()
   gripper_servo1.write(gservozero1);
   gripper_servo2.write(gservozero2);
   arm_servo.write(armservozero);
+  
 }
 void mode_based_operation_loop()
 {
@@ -1142,7 +1141,28 @@ void mode_based_operation_loop()
         //Serial3.println("sensed");
         Serial3.println(c, BIN);
         boolean kc = conditions2();
-
+        switch (con)
+        {
+          case (INV):
+            {
+              brake();
+              responce("G120 I");
+              resetconditions();
+              break;
+            }
+          case (NODE):
+            { brake();
+              responce("G120 N");
+              resetconditions();
+              break;
+            }
+          case (PNT):
+            { brake();
+              responce("G120 L F R");
+              resetconditions();
+              break;
+            }
+        }
         Serial3.println(c);
         if (c == 0)
         {
@@ -1157,7 +1177,53 @@ void mode_based_operation_loop()
         gen();
         break;
       }
+    case (trial_mode):
+      {
+        for (int i; i < 6; i++)
+        {
+          psen[i] = sen[i];
+        }
+        sense();
 
+        //Serial3.println("sensed");
+        Serial3.println(c, BIN);
+        boolean kc = conditions2();
+        switch (con)
+        {
+          case (INV):
+            {
+              brake();
+              responce("G120 I");
+              resetconditions();
+              break;
+            }
+          case (NODE):
+            { brake();
+              responce("G120 N");
+              resetconditions();
+              break;
+            }
+          case (PNT):
+            { brake();
+              responce("G120 L F R");
+              resetconditions();
+              break;
+            }
+        }
+        Serial3.println(c);
+        if (c == 0)
+        {
+          lspd = 0;
+          rspd = 0;
+        }
+        else
+        {
+          lspd = lspdprev;
+          rspd = rspdprev;
+        }
+        gen();
+        break;
+      }
   }
 }
 
@@ -1184,8 +1250,9 @@ void loop()
     }
   }
   mode_based_operation_loop();
+
   Serial3.print("dl");
   Serial3.print(dl);
-  Serial3.print("dl");
-  Serial3.println(dl);
+  Serial3.print("dr");
+  Serial3.println(dr);
 }
